@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\Client;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -10,7 +11,8 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = Project::orderBy('name')->get();
+        $projects = Project::with('client')->orderBy('name')->get();
+        // dd($projects); // Debugging line, remove in production
         return Inertia::render('ProjectsList', [
             'projects' => $projects,
         ]);
@@ -18,14 +20,17 @@ class ProjectController extends Controller
 
     public function create()
     {
-        return Inertia::render('ProjectCreate');
+        $clients = Client::orderBy('name')->get(['id', 'name']);
+        return Inertia::render('ProjectCreate', [
+            'clients' => $clients,
+        ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'client' => 'nullable|string|max:255',
+            'client_id' => 'nullable|exists:clients,id',
         ]);
         Project::create($validated);
         return redirect()->route('projects.index')->with('success', 'Project created.');
@@ -33,8 +38,10 @@ class ProjectController extends Controller
 
     public function edit(Project $project)
     {
+        $clients = Client::orderBy('name')->get(['id', 'name']);
         return Inertia::render('ProjectEdit', [
             'project' => $project,
+            'clients' => $clients,
         ]);
     }
 
@@ -42,8 +49,9 @@ class ProjectController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'client' => 'nullable|string|max:255',
+            'client_id' => 'nullable|exists:clients,id',
         ]);
+        // dd($validated); // Debugging line, remove in production
         $project->update($validated);
         return redirect()->route('projects.index')->with('success', 'Project updated.');
     }

@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 
 export default function ClientsList({ auth, clients, flash }) {
-    const [deleteId, setDeleteId] = React.useState(null);
-    const [toast, setToast] = React.useState(flash?.success || '');
+    const [deleteId, setDeleteId] = useState(null);
+    const [toast, setToast] = useState(flash?.success || '');
 
     const confirmDelete = (id) => setDeleteId(id);
     const handleDelete = () => {
@@ -56,6 +56,7 @@ export default function ClientsList({ auth, clients, flash }) {
                                     <tr>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">ID</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projects</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Actions</th>
                                     </tr>
                                 </thead>
@@ -64,6 +65,7 @@ export default function ClientsList({ auth, clients, flash }) {
                                         <tr key={client.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{client.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{client.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{client.projects_count ?? 0}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 <Link href={route('clients.edit', client.id)} className="text-blue-600 hover:underline mr-2">Edit</Link>
                                                 <button onClick={() => confirmDelete(client.id)} className="text-red-600 hover:underline">Delete</button>

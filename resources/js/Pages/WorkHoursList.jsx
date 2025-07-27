@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import { timeFormat } from '../helpers';
 
 function Toast({ message, onClose }) {
     if (!message) return null;
@@ -140,9 +141,9 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.work_type}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.tracker}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.client}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.hours}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project?.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project?.client?.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{timeFormat(entry.hours)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 <Link href={route('work-hours.edit', entry.id)} className="text-blue-600 hover:underline mr-2">Edit</Link>
@@ -155,7 +156,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                     <tr>
                                         <td colSpan={6}></td>
                                         <td className="px-6 py-4 font-bold text-right text-gray-900">
-                                            Total: {workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2)}
+                                            Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                         </td>
                                         <td colSpan={2}></td>
                                     </tr>

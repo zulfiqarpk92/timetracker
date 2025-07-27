@@ -11,6 +11,11 @@ class Project extends Model
 
     protected $fillable = [
         'name',
-        'client',
+        'client_id',
     ];
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
 }

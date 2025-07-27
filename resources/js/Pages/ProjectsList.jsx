@@ -54,10 +54,10 @@ export default function ProjectsList({ auth, projects, flash }) {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead>
                                     <tr>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">ID</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -65,7 +65,7 @@ export default function ProjectsList({ auth, projects, flash }) {
                                         <tr key={project.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.client}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.client?.name}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 <Link href={route('projects.edit', project.id)} className="text-blue-600 hover:underline mr-2">Edit</Link>
                                                 <button onClick={() => confirmDelete(project.id)} className="text-red-600 hover:underline">Delete</button>

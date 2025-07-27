@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\WorkHour;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class WorkHourController extends Controller
 
     public function index(Request $request)
     {
-        $query = WorkHour::with('user')->where('user_id', auth()->id());
+        $query = WorkHour::with('user', 'project', 'project.client')->where('user_id', auth()->id());
         $filter = $request->input('filter', 'all');
         $startDate = $request->input('startDate');
         $endDate = $request->input('endDate');
@@ -43,8 +44,13 @@ class WorkHourController extends Controller
 
     public function create()
     {
+        $projects = Project::select('id', 'name', 'client_id')
+            ->with(['client:id,name'])
+            ->orderBy('name')
+            ->get();
         return Inertia::render('WorkHourCreate', [
             'trackers' => $this->trackers,
+            'projects' => $projects,
         ]);
     }
 
@@ -56,8 +62,7 @@ class WorkHourController extends Controller
             'minutes' => 'required|integer|min:0|max:59',
             'description' => 'nullable|string',
             'work_type' => 'nullable|string',
-            'project' => 'nullable|string',
-            'client' => 'nullable|string',
+            'project_id' => 'nullable|integer|exists:projects,id',
             'tracker' => 'nullable|string',
         ]);
         $validated['user_id'] = $request->user()->id;
@@ -73,9 +78,14 @@ class WorkHourController extends Controller
 
     public function edit(WorkHour $workHour)
     {
+        $projects = Project::select('id', 'name', 'client_id')
+            ->with(['client:id,name'])
+            ->orderBy('name')
+            ->get();
         return Inertia::render('WorkHourEdit', [
             'workHour' => $workHour,
             'trackers' => $this->trackers,
+            'projects' => $projects,
         ]);
     }
 
@@ -87,8 +97,7 @@ class WorkHourController extends Controller
             'minutes' => 'required|integer|min:0|max:59',
             'description' => 'nullable|string',
             'work_type' => 'nullable|string',
-            'project' => 'nullable|string',
-            'client' => 'nullable|string',
+            'project_id' => 'nullable|integer|exists:projects,id',
             'tracker' => 'nullable|string',
         ]);
         $validated['hours'] = $validated['hours'] + ($validated['minutes'] / 60);

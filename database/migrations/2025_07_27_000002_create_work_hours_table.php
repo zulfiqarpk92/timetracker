@@ -14,6 +14,9 @@ return new class extends Migration
             $table->date('date');
             $table->decimal('hours', 5, 2);
             $table->text('description')->nullable();
+            $table->string('work_type')->nullable();
+            $table->foreignId('project_id')->nullable();
+            $table->string('tracker')->nullable();
             $table->timestamps();
         });
     }

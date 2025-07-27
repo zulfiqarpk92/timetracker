@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 
-export default function ProjectCreate({ auth }) {
+export default function ProjectCreate({ auth, clients = [] }) {
     const form = useForm({
         name: '',
-        client: '',
+        client_id: '',
     });
 
     const handleSubmit = (e) => {
@@ -17,7 +17,7 @@ export default function ProjectCreate({ auth }) {
         <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Add Project</h2>}>
             <Head title="Add Project" />
             <div className="py-12">
-                <div className="max-w-md mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             <h1 className="text-2xl font-bold mb-4">Add Project</h1>
@@ -26,9 +26,16 @@ export default function ProjectCreate({ auth }) {
                                     <input type="text" placeholder="Project Name" value={form.data.name} onChange={e => form.setData('name', e.target.value)} className="border rounded px-2 py-1 w-full" required />
                                     {form.errors.name && <div className="text-red-600 text-sm">{form.errors.name}</div>}
                                 </div>
+
                                 <div>
-                                    <input type="text" placeholder="Client" value={form.data.client} onChange={e => form.setData('client', e.target.value)} className="border rounded px-2 py-1 w-full" />
-                                    {form.errors.client && <div className="text-red-600 text-sm">{form.errors.client}</div>}
+                                    <select name="client_id" value={form.data.client_id} onChange={e => form.setData('client_id', e.target.value)} className="border rounded px-2 py-1 w-full">
+                                        <option value="">Select Client</option>
+                                        {clients.map(client => (
+                                            <option key={client.id} value={client.id}>{client.name}</option>
+                                        ))}
+                                    </select>
+
+                                    {form.errors.client_id && <div className="text-red-600 text-sm">{form.errors.client_id}</div>}
                                 </div>
                                 <div className="flex gap-2">
                                     <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded">Save</button>

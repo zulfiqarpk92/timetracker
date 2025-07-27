@@ -2,15 +2,14 @@ import React from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 
-export default function WorkHourCreate({ auth, trackers }) {
+export default function WorkHourCreate({ auth, trackers, projects }) {
     const createForm = useForm({
         date: '',
         hours: '',
-        minutes: '',
+        minutes: '0',
         description: '',
         work_type: 'tracker',
-        project: '',
-        client: '',
+        project_id: '',
         tracker: '',
     });
 
@@ -34,7 +33,7 @@ export default function WorkHourCreate({ auth, trackers }) {
         <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Add Work Hour Entry</h2>}>
             <Head title="Add Work Hour Entry" />
             <div className="py-12">
-                <div className="max-w-lg mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             <h1 className="text-2xl font-bold mb-4">Add Work Hour Entry</h1>
@@ -42,7 +41,7 @@ export default function WorkHourCreate({ auth, trackers }) {
                                 <div>
                                     <span className="block mb-1 font-medium">Work Type</span>
                                     <div className="flex gap-4">
-                                        <label className="inline-flex items-center">
+                                        <label className="inline-flex items-center cursor-pointer">
                                             <input
                                                 type="radio"
                                                 name="work_type"
@@ -53,18 +52,7 @@ export default function WorkHourCreate({ auth, trackers }) {
                                             />
                                             Tracker
                                         </label>
-                                        <label className="inline-flex items-center">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="fixed"
-                                                checked={createForm.data.work_type === 'fixed'}
-                                                onChange={e => createForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Fixed
-                                        </label>
-                                        <label className="inline-flex items-center">
+                                        <label className="inline-flex items-center cursor-pointer">
                                             <input
                                                 type="radio"
                                                 name="work_type"
@@ -73,7 +61,29 @@ export default function WorkHourCreate({ auth, trackers }) {
                                                 onChange={e => createForm.setData('work_type', e.target.value)}
                                                 className="mr-1"
                                             />
-                                            Manual
+                                            Manual Time
+                                        </label>
+                                        <label className="inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="work_type"
+                                                value="test_task"
+                                                checked={createForm.data.work_type === 'test_task'}
+                                                onChange={e => createForm.setData('work_type', e.target.value)}
+                                                className="mr-1"
+                                            />
+                                            Test Task
+                                        </label>
+                                        <label className="inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="work_type"
+                                                value="fixed"
+                                                checked={createForm.data.work_type === 'fixed'}
+                                                onChange={e => createForm.setData('work_type', e.target.value)}
+                                                className="mr-1"
+                                            />
+                                            Fixed Project
                                         </label>
                                     </div>
                                     {createForm.errors.work_type && <div className="text-red-600 text-sm">{createForm.errors.work_type}</div>}
@@ -81,7 +91,7 @@ export default function WorkHourCreate({ auth, trackers }) {
                                 {createForm.data.work_type === 'tracker' && (
                                     <div>
                                         <select value={createForm.data.tracker} onChange={e => createForm.setData('tracker', e.target.value)} className="border rounded px-2 py-1 w-full">
-                                            <option value="">Select Tracker</option>
+                                            <option value="">Select a Profile</option>
                                             {trackers.map(tr => (
                                                 <option key={tr} value={tr}>{tr}</option>
                                             ))}
@@ -94,12 +104,13 @@ export default function WorkHourCreate({ auth, trackers }) {
                                     {createForm.errors.date && <div className="text-red-600 text-sm">{createForm.errors.date}</div>}
                                 </div>
                                 <div>
-                                    <input type="text" placeholder="Project" value={createForm.data.project} onChange={e => createForm.setData('project', e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <select name="project_id" value={createForm.data.project_id} onChange={e => createForm.setData('project_id', e.target.value)} className="w-full">
+                                        <option value="">Select Project</option>
+                                        {projects.map(project => (
+                                            <option key={project.id} value={project.id}>{project.client?.name ?? 'No Client'} -- {project.name}</option>
+                                        ))}
+                                    </select>
                                     {createForm.errors.project && <div className="text-red-600 text-sm">{createForm.errors.project}</div>}
-                                </div>
-                                <div>
-                                    <input type="text" placeholder="Client" value={createForm.data.client} onChange={e => createForm.setData('client', e.target.value)} className="border rounded px-2 py-1 w-full" />
-                                    {createForm.errors.client && <div className="text-red-600 text-sm">{createForm.errors.client}</div>}
                                 </div>
                                 <div className="flex gap-2">
                                     <input type="number" step="1" min="0" max="24" placeholder="Hours" value={createForm.data.hours} onChange={e => createForm.setData('hours', e.target.value)} className="border rounded px-2 py-1 w-1/2" required />
@@ -108,7 +119,7 @@ export default function WorkHourCreate({ auth, trackers }) {
                                 {createForm.errors.hours && <div className="text-red-600 text-sm">{createForm.errors.hours}</div>}
                                 {createForm.errors.minutes && <div className="text-red-600 text-sm">{createForm.errors.minutes}</div>}
                                 <div>
-                                    <textarea placeholder="Description (optional)" value={createForm.data.description} onChange={e => createForm.setData('description', e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <textarea placeholder="Memo" value={createForm.data.description} onChange={e => createForm.setData('description', e.target.value)} className="border rounded px-2 py-1 w-full" />
                                     {createForm.errors.description && <div className="text-red-600 text-sm">{createForm.errors.description}</div>}
                                 </div>
                                 <div className="flex gap-2">

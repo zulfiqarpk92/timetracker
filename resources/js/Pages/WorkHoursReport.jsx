@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
+import { timeFormat } from '../helpers';
 
 function Toast({ message, onClose }) {
     if (!message) return null;
@@ -176,7 +177,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.client}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.hours}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{timeFormat(entry.hours)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
                                         </tr>
                                     ))}
@@ -185,7 +186,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     <tr>
                                         <td colSpan={6}></td>
                                         <td className="px-6 py-4 font-bold text-right text-gray-900">
-                                            Total: {workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2)}
+                                            Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                         </td>
                                         <td colSpan={2}></td>
                                     </tr>

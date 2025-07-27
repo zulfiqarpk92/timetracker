@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('client')->nullable();
+            $table->foreignId('client_id')->nullable();
             $table->timestamps();
         });
     }
