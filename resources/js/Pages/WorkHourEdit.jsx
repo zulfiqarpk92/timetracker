@@ -2,7 +2,7 @@ import React from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 
-export default function WorkHourEdit({ auth, workHour, trackers = [] }) {
+export default function WorkHourEdit({ auth, workHour, trackers = [], projects = [] }) {
     const editForm = useForm({
         id: workHour.id,
         date: workHour.date,
@@ -10,12 +10,11 @@ export default function WorkHourEdit({ auth, workHour, trackers = [] }) {
         minutes: workHour.hours ? Math.round((Number(workHour.hours) % 1) * 60) : '',
         description: workHour.description || '',
         work_type: workHour.work_type || '',
-        project: workHour.project || '',
-        client: workHour.client || '',
+        project_id: workHour.project_id || '',
         tracker: workHour.tracker || '',
     });
 
-    const handleEdit = (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
         const totalHours = Number(editForm.data.hours) + Number(editForm.data.minutes) / 60;
         editForm.put(route('work-hours.update', { id: editForm.data.id, hours: totalHours }));
@@ -25,54 +24,91 @@ export default function WorkHourEdit({ auth, workHour, trackers = [] }) {
         <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Edit Work Hour Entry</h2>}>
             <Head title="Edit Work Hour Entry" />
             <div className="py-12">
-                <div className="max-w-md mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             <h1 className="text-2xl font-bold mb-4">Edit Work Hour Entry</h1>
-                            <form onSubmit={handleEdit} className="mb-4 space-y-2">
+                            <form onSubmit={handleSubmit} className="mb-4 space-y-2">
                                 <div>
                                     <span className="block mb-1 font-medium">Work Type</span>
-                                    <div className="flex gap-4">
-                                        <label className="inline-flex items-center">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="tracker"
-                                                checked={editForm.data.work_type === 'tracker'}
-                                                onChange={e => editForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Tracker
-                                        </label>
-                                        <label className="inline-flex items-center">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="fixed"
-                                                checked={editForm.data.work_type === 'fixed'}
-                                                onChange={e => editForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Fixed
-                                        </label>
-                                        <label className="inline-flex items-center">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="manual"
-                                                checked={editForm.data.work_type === 'manual'}
-                                                onChange={e => editForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Manual
-                                        </label>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex gap-4 w-full">
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="tracker"
+                                                    checked={editForm.data.work_type === 'tracker'}
+                                                    onChange={e => editForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Tracker
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="manual"
+                                                    checked={editForm.data.work_type === 'manual'}
+                                                    onChange={e => editForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Manual Time
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="test_task"
+                                                    checked={editForm.data.work_type === 'test_task'}
+                                                    onChange={e => editForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Test Task
+                                            </label>
+                                        </div>
+                                        <div className="flex gap-4 w-full">
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="fixed"
+                                                    checked={editForm.data.work_type === 'fixed'}
+                                                    onChange={e => editForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Fixed Project
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="office_work"
+                                                    checked={editForm.data.work_type === 'office_work'}
+                                                    onChange={e => editForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Office Work
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="outside_of_upwork"
+                                                    checked={editForm.data.work_type === 'outside_of_upwork'}
+                                                    onChange={e => editForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Outside of Upwork
+                                            </label>
+                                        </div>
                                     </div>
                                     {editForm.errors.work_type && <div className="text-red-600 text-sm">{editForm.errors.work_type}</div>}
                                 </div>
-                                {editForm.data.work_type === 'tracker' && (
+                                {!['office_work', 'outside_of_upwork'].includes(editForm.data.work_type) && (
                                     <div>
                                         <select value={editForm.data.tracker} onChange={e => editForm.setData('tracker', e.target.value)} className="border rounded px-2 py-1 w-full">
-                                            <option value="">Select Tracker</option>
+                                            <option value="">Select a Profile</option>
                                             {trackers.map(tr => (
                                                 <option key={tr} value={tr}>{tr}</option>
                                             ))}
@@ -85,12 +121,13 @@ export default function WorkHourEdit({ auth, workHour, trackers = [] }) {
                                     {editForm.errors.date && <div className="text-red-600 text-sm">{editForm.errors.date}</div>}
                                 </div>
                                 <div>
-                                    <input type="text" placeholder="Project" value={editForm.data.project} onChange={e => editForm.setData('project', e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <select name="project_id" value={editForm.data.project_id} onChange={e => editForm.setData('project_id', e.target.value)} className="w-full">
+                                        <option value="">Select Project</option>
+                                        {projects.map(project => (
+                                            <option key={project.id} value={project.id}>{project.client?.name ?? 'No Client'} -- {project.name}</option>
+                                        ))}
+                                    </select>
                                     {editForm.errors.project && <div className="text-red-600 text-sm">{editForm.errors.project}</div>}
-                                </div>
-                                <div>
-                                    <input type="text" placeholder="Client" value={editForm.data.client} onChange={e => editForm.setData('client', e.target.value)} className="border rounded px-2 py-1 w-full" />
-                                    {editForm.errors.client && <div className="text-red-600 text-sm">{editForm.errors.client}</div>}
                                 </div>
                                 <div className="flex gap-2">
                                     <input type="number" step="1" min="0" max="24" placeholder="Hours" value={editForm.data.hours} onChange={e => editForm.setData('hours', e.target.value)} className="border rounded px-2 py-1 w-1/2" required />
@@ -99,7 +136,7 @@ export default function WorkHourEdit({ auth, workHour, trackers = [] }) {
                                 {editForm.errors.hours && <div className="text-red-600 text-sm">{editForm.errors.hours}</div>}
                                 {editForm.errors.minutes && <div className="text-red-600 text-sm">{editForm.errors.minutes}</div>}
                                 <div>
-                                    <textarea placeholder="Description (optional)" value={editForm.data.description} onChange={e => editForm.setData('description', e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <textarea placeholder="Memo" value={editForm.data.description} onChange={e => editForm.setData('description', e.target.value)} className="border rounded px-2 py-1 w-full" />
                                     {editForm.errors.description && <div className="text-red-600 text-sm">{editForm.errors.description}</div>}
                                 </div>
                                 <div className="flex gap-2">

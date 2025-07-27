@@ -2,9 +2,23 @@
 
 return [
     'trackers' => [
-        'Ramish',
-        'Junaid',
-        'Jawad',
-        'Awais',
-    ],
+        "Adeel",
+        "Awais",
+        "Ayesha",
+        "Basit",
+        "Islam Shah",
+        "Jawad",
+        "Junaid",
+        "Mahnoor",
+        "Marwa",
+        "Misbah",
+        "Muhsin",
+        "Naila",
+        "Nimra",
+        "Parveen",
+        "Ramish",
+        "Sadia",
+        "Sonehra",
+        "Zain"
+    ]
 ];

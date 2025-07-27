@@ -2,7 +2,7 @@ import React from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 
-export default function WorkHourCreate({ auth, trackers, projects }) {
+export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
     const createForm = useForm({
         date: '',
         hours: '',
@@ -13,7 +13,7 @@ export default function WorkHourCreate({ auth, trackers, projects }) {
         tracker: '',
     });
 
-    const handleCreate = (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
         createForm.post(route('work-hours.store'));
     };
@@ -37,58 +37,84 @@ export default function WorkHourCreate({ auth, trackers, projects }) {
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             <h1 className="text-2xl font-bold mb-4">Add Work Hour Entry</h1>
-                            <form onSubmit={handleCreate} className="mb-4 space-y-2">
+                            <form onSubmit={handleSubmit} className="mb-4 space-y-2">
                                 <div>
                                     <span className="block mb-1 font-medium">Work Type</span>
-                                    <div className="flex gap-4">
-                                        <label className="inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="tracker"
-                                                checked={createForm.data.work_type === 'tracker'}
-                                                onChange={e => createForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Tracker
-                                        </label>
-                                        <label className="inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="manual"
-                                                checked={createForm.data.work_type === 'manual'}
-                                                onChange={e => createForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Manual Time
-                                        </label>
-                                        <label className="inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="test_task"
-                                                checked={createForm.data.work_type === 'test_task'}
-                                                onChange={e => createForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Test Task
-                                        </label>
-                                        <label className="inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="work_type"
-                                                value="fixed"
-                                                checked={createForm.data.work_type === 'fixed'}
-                                                onChange={e => createForm.setData('work_type', e.target.value)}
-                                                className="mr-1"
-                                            />
-                                            Fixed Project
-                                        </label>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex gap-4 w-full">
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="tracker"
+                                                    checked={createForm.data.work_type === 'tracker'}
+                                                    onChange={e => createForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Tracker
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="manual"
+                                                    checked={createForm.data.work_type === 'manual'}
+                                                    onChange={e => createForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Manual Time
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="test_task"
+                                                    checked={createForm.data.work_type === 'test_task'}
+                                                    onChange={e => createForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Test Task
+                                            </label>
+                                        </div>
+                                        <div className="flex gap-4 w-full">
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="fixed"
+                                                    checked={createForm.data.work_type === 'fixed'}
+                                                    onChange={e => createForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Fixed Project
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="office_work"
+                                                    checked={createForm.data.work_type === 'office_work'}
+                                                    onChange={e => createForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Office Work
+                                            </label>
+                                            <label className="inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="work_type"
+                                                    value="outside_of_upwork"
+                                                    checked={createForm.data.work_type === 'outside_of_upwork'}
+                                                    onChange={e => createForm.setData('work_type', e.target.value)}
+                                                    className="mr-1"
+                                                />
+                                                Outside of Upwork
+                                            </label>
+                                        </div>
                                     </div>
                                     {createForm.errors.work_type && <div className="text-red-600 text-sm">{createForm.errors.work_type}</div>}
                                 </div>
-                                {createForm.data.work_type === 'tracker' && (
+                                {!['office_work', 'outside_of_upwork'].includes(createForm.data.work_type) && (
                                     <div>
                                         <select value={createForm.data.tracker} onChange={e => createForm.setData('tracker', e.target.value)} className="border rounded px-2 py-1 w-full">
                                             <option value="">Select a Profile</option>
