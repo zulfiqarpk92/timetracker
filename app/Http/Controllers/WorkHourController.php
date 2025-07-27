@@ -68,9 +68,6 @@ class WorkHourController extends Controller
         $validated['user_id'] = $request->user()->id;
         $validated['hours'] = $validated['hours'] + ($validated['minutes'] / 60);
         unset($validated['minutes']);
-        if($validated['work_type'] != 'tracker') {
-            $validated['tracker'] = '';
-        }
         WorkHour::create($validated);
         return redirect()->route('work-hours.index')
             ->with('success', 'Work hour entry created successfully.');
@@ -102,9 +99,6 @@ class WorkHourController extends Controller
         ]);
         $validated['hours'] = $validated['hours'] + ($validated['minutes'] / 60);
         unset($validated['minutes']);
-        if($validated['work_type'] != 'tracker') {
-            $validated['tracker'] = '';
-        }
         $workHour->update($validated);
         return redirect()->route('work-hours.index')
             ->with('success', 'Work hour entry updated successfully.');
