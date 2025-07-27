@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import Dropdown from '@/Components/Dropdown';
 
 function Toast({ message, onClose }) {
     if (!message) return null;
@@ -119,12 +120,38 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     <button onClick={() => handleWorkTypeFilter('manual')} className={`px-3 py-1 rounded ${activeWorkType === 'manual' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Manual</button>
                                 </div>
                                 <div className="flex gap-2 mb-2">
-                                    <select value={activeUser} onChange={e => handleUserFilter(e.target.value)} className="border rounded px-2 py-1">
-                                        <option value="all">All Users</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.id}>{u.name}</option>
-                                        ))}
-                                    </select>
+                                    <Dropdown>
+                                        <Dropdown.Trigger>
+                                            <span className="inline-flex rounded-md">
+                                                <button
+                                                    type="button"
+                                                    className={`inline-flex items-center px-3 py-2 border text-sm leading-4 font-medium rounded-md ${activeUser > 0 ? 'bg-green-600 text-white' : 'text-gray-500 bg-white'} hover:text-gray-700 focus:outline-none transition ease-in-out duration-150`}
+                                                >
+                                                    {activeUser === 'all' ? 'All Users' : users.find(u => u.id == activeUser)?.name || 'Select User'}
+
+                                                    <svg
+                                                        className="ms-2 -me-0.5 h-4 w-4"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        viewBox="0 0 20 20"
+                                                        fill="currentColor"
+                                                    >
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </span>
+                                        </Dropdown.Trigger>
+
+                                        <Dropdown.Content>
+                                            <button onClick={() => handleUserFilter('all')} className="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">All Users</button>
+                                            {users.map(u => (
+                                                <button key={u.id} onClick={() => handleUserFilter(u.id)} className={`block w-full px-4 py-2 text-start text-sm leading-5 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out ${activeUser == u.id ? 'bg-green-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>{u.name}</button>
+                                            ))}
+                                        </Dropdown.Content>
+                                    </Dropdown>
                                 </div>
                             </div>
                             <table className="min-w-full divide-y divide-gray-200">

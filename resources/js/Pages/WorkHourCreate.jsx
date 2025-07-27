@@ -2,13 +2,13 @@ import React from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 
-export default function WorkHourCreate({ auth }) {
+export default function WorkHourCreate({ auth, trackers }) {
     const createForm = useForm({
         date: '',
         hours: '',
         minutes: '',
         description: '',
-        work_type: '',
+        work_type: 'tracker',
         project: '',
         client: '',
         tracker: '',
@@ -19,11 +19,22 @@ export default function WorkHourCreate({ auth }) {
         createForm.post(route('work-hours.store'));
     };
 
+    const handleCreateAndAddAnother = (e) => {
+        e.preventDefault();
+        createForm.post(route('work-hours.store'), {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                createForm.reset();
+            },
+        });
+    };
+
     return (
         <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Add Work Hour Entry</h2>}>
             <Head title="Add Work Hour Entry" />
             <div className="py-12">
-                <div className="max-w-md mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-lg mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             <h1 className="text-2xl font-bold mb-4">Add Work Hour Entry</h1>
@@ -102,6 +113,7 @@ export default function WorkHourCreate({ auth }) {
                                 </div>
                                 <div className="flex gap-2">
                                     <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded">Create</button>
+                                    {/* <button type="button" onClick={handleCreateAndAddAnother} className="bg-green-600 text-white px-3 py-1 rounded">Create & Add Another</button> */}
                                     <Link href={route('work-hours.index')} className="bg-gray-400 text-white px-3 py-1 rounded">Cancel</Link>
                                 </div>
                             </form>

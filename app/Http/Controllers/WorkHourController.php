@@ -37,6 +37,7 @@ class WorkHourController extends Controller
             'startDate' => $startDate,
             'endDate' => $endDate,
             'workType' => $workType,
+            'flash' => ['success' => $request->session()->get('success') ?? ''],
         ]);
     }
 
@@ -66,7 +67,8 @@ class WorkHourController extends Controller
             $validated['tracker'] = '';
         }
         WorkHour::create($validated);
-        return redirect()->route('work-hours.index')->with('success', 'Work hour entry created.');
+        return redirect()->route('work-hours.index')
+            ->with('success', 'Work hour entry created successfully.');
     }
 
     public function edit(WorkHour $workHour)
@@ -95,7 +97,8 @@ class WorkHourController extends Controller
             $validated['tracker'] = '';
         }
         $workHour->update($validated);
-        return redirect()->route('work-hours.index')->with('success', 'Work hour entry updated.');
+        return redirect()->route('work-hours.index')
+            ->with('success', 'Work hour entry updated successfully.');
     }
 
     public function destroy(WorkHour $workHour)

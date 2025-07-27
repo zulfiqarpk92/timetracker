@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ClientController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,6 +43,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('work-hours', \App\Http\Controllers\WorkHourController::class)->except(['show']);
     Route::get('/work-hours/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
+
+    Route::resource('projects', ProjectController::class);
+
+    Route::resource('clients', ClientController::class);
 });
 
 require __DIR__.'/auth.php';

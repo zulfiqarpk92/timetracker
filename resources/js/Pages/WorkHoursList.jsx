@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 
@@ -33,6 +33,10 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
     const [toast, setToast] = useState(flash?.success || '');
     const [activeFilter, setActiveFilter] = useState(filter);
     const [activeWorkType, setActiveWorkType] = useState(workType);
+
+    useEffect(() => {
+        if (flash?.success) setToast(flash.success);
+    }, [flash?.success]);
 
     const handleDelete = (id) => {
         setDeleteId(id);
@@ -141,8 +145,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.hours}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <Link href={route('work-hours.edit', entry.id)} className="bg-yellow-500 text-white px-2 py-1 rounded mr-2">Edit</Link>
-                                                <button onClick={() => handleDelete(entry.id)} className="bg-red-600 text-white px-2 py-1 rounded">Delete</button>
+                                                <Link href={route('work-hours.edit', entry.id)} className="text-blue-600 hover:underline mr-2">Edit</Link>
+                                                <button onClick={() => handleDelete(entry.id)} className="text-red-600 hover:underline">Delete</button>
                                             </td>
                                         </tr>
                                     ))}
