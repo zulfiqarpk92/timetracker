@@ -1,0 +1,166 @@
+import React, { useState } from 'react';
+import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
+import { Head, Link, router } from '@inertiajs/react';
+
+function Toast({ message, onClose }) {
+    if (!message) return null;
+    return (
+        <div className="fixed top-5 right-5 z-50 bg-green-600 text-white px-4 py-2 rounded shadow-lg flex items-center">
+            <span>{message}</span>
+            <button onClick={onClose} className="ml-4 text-white font-bold">&times;</button>
+        </div>
+    );
+}
+
+const getDateRange = (filter) => {
+    const today = new Date();
+    let start, end;
+    if (filter === 'today') {
+        start = end = today.toISOString().slice(0, 10);
+    } else if (filter === 'week') {
+        const first = today.getDate() - today.getDay();
+        start = new Date(today.setDate(first)).toISOString().slice(0, 10);
+        end = new Date().toISOString().slice(0, 10);
+    } else if (filter === 'month') {
+        start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+        end = new Date().toISOString().slice(0, 10);
+    }
+    return { start, end };
+};
+
+export default function WorkHoursList({ auth, workHours, flash, filter = 'all', startDate = '', endDate = '', workType = 'all' }) {
+    const [deleteId, setDeleteId] = useState(null);
+    const [toast, setToast] = useState(flash?.success || '');
+    const [activeFilter, setActiveFilter] = useState(filter);
+    const [activeWorkType, setActiveWorkType] = useState(workType);
+
+    const handleDelete = (id) => {
+        setDeleteId(id);
+    };
+
+    const confirmDelete = () => {
+        if (!deleteId) return;
+        router.delete(route('work-hours.destroy', deleteId), {
+            onSuccess: () => {
+                setToast('Entry deleted successfully.');
+                setDeleteId(null);
+            },
+            onError: () => {
+                setToast('Failed to delete entry.');
+                setDeleteId(null);
+            },
+        });
+    };
+
+    const closeToast = () => setToast('');
+
+    const handleFilter = (filter, workTypeFilter = activeWorkType) => {
+        setActiveFilter(filter);
+        if (filter === 'all' && (workTypeFilter === 'all' || !workTypeFilter)) {
+            router.get(route('work-hours.index'));
+        } else {
+            const { start, end } = getDateRange(filter);
+            const params = { filter };
+            if (filter !== 'all') {
+                params.startDate = start;
+                params.endDate = end;
+            }
+            if (workTypeFilter && workTypeFilter !== 'all') {
+                params.workType = workTypeFilter;
+            }
+            router.get(route('work-hours.index'), params);
+        }
+    };
+
+    const handleWorkTypeFilter = (type) => {
+        setActiveWorkType(type);
+        handleFilter(activeFilter, type);
+    };
+
+    return (
+        <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Work Hours</h2>}>
+            <Head title="Work Hours" />
+            <Toast message={toast} onClose={closeToast} />
+            {deleteId && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded shadow-lg p-6 w-full max-w-sm">
+                        <h2 className="text-lg font-bold mb-4">Confirm Delete</h2>
+                        <p className="mb-4">Are you sure you want to delete this entry?</p>
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setDeleteId(null)} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                            <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <div className="py-12">
+                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div className="p-6 text-gray-900">
+                            <div className="flex justify-between items-center">
+                                <h1 className="text-2xl font-bold mb-4">Work Hours</h1>
+                                <Link className="mb-4 inline-block px-4 py-2 bg-blue-600 text-white rounded" href={route('work-hours.create')}>Add Entry</Link>
+                            </div>
+                            <div className="mb-4 flex gap-2 flex-wrap">
+                                <div className="flex gap-2 mb-2">
+                                    <button onClick={() => handleFilter('all')} className={`px-3 py-1 rounded ${activeFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>All Dates</button>
+                                    <button onClick={() => handleFilter('today')} className={`px-3 py-1 rounded ${activeFilter === 'today' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Today</button>
+                                    <button onClick={() => handleFilter('week')} className={`px-3 py-1 rounded ${activeFilter === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>This Week</button>
+                                    <button onClick={() => handleFilter('month')} className={`px-3 py-1 rounded ${activeFilter === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>This Month</button>
+                                </div>
+                                <div className="flex gap-2 mb-2">
+                                    <button onClick={() => handleWorkTypeFilter('all')} className={`px-3 py-1 rounded ${activeWorkType === 'all' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>All Types</button>
+                                    <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-3 py-1 rounded ${activeWorkType === 'tracker' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Tracker</button>
+                                    <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-3 py-1 rounded ${activeWorkType === 'fixed' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Fixed</button>
+                                    <button onClick={() => handleWorkTypeFilter('manual')} className={`px-3 py-1 rounded ${activeWorkType === 'manual' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Manual</button>
+                                </div>
+                            </div>
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tracker</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {workHours.map(entry => (
+                                        <tr key={entry.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.id}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.work_type}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.tracker}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.client}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.hours}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <Link href={route('work-hours.edit', entry.id)} className="bg-yellow-500 text-white px-2 py-1 rounded mr-2">Edit</Link>
+                                                <button onClick={() => handleDelete(entry.id)} className="bg-red-600 text-white px-2 py-1 rounded">Delete</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colSpan={6}></td>
+                                        <td className="px-6 py-4 font-bold text-right text-gray-900">
+                                            Total: {workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2)}
+                                        </td>
+                                        <td colSpan={2}></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}

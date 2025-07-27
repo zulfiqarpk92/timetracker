@@ -16,7 +16,7 @@ export default function Authenticated({ user, header, children }) {
                         <div className="flex">
                             <div className="shrink-0 flex items-center">
                                 <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
+                                    <ApplicationLogo size="10" />
                                 </Link>
                             </div>
 
@@ -24,12 +24,19 @@ export default function Authenticated({ user, header, children }) {
                                 <NavLink href={route('dashboard')} active={route().current('dashboard')}>
                                     Dashboard
                                 </NavLink>
-                                <NavLink href={route('users.index')} active={route().current('users.index')}>
-                                    Users
+                                {user?.role === 'admin' && (
+                                    <NavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
+                                        Users
+                                    </NavLink>
+                                )}
+                                <NavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
+                                    Work Hours
                                 </NavLink>
-                                <NavLink href={route('dashboard')} active={route().current('timesheet')}>
-                                    Timesheet
-                                </NavLink>
+                                {user?.role === 'admin' && (
+                                    <NavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
+                                        Hours Report
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 

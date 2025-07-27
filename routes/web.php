@@ -36,7 +36,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/users', [UserController::class, 'index'])
-->middleware(['auth', 'verified'])->name('users.index');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::resource('users', UserController::class)->except(['show']);
+
+    Route::resource('work-hours', \App\Http\Controllers\WorkHourController::class)->except(['show']);
+    Route::get('/work-hours/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
+});
 
 require __DIR__.'/auth.php';
