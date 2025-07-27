@@ -1,0 +1,1 @@
+import{j as s}from"./app-30pUWKjp.js";function i({size:t}){return s.jsx("div",{className:"flex justify-center",children:s.jsx("img",{src:"https://www.sparkingasia.com/wp-content/uploads/2022/03/sa.png",className:`w-${t}`})})}export{i as A};
