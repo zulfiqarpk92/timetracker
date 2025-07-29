@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
@@ -38,6 +39,35 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
     const [activeWorkType, setActiveWorkType] = useState(workType);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
+
+    // Helper to convert decimal hours to HH:mm:ss
+    const decimalToDuration = (decimal) => {
+        if (!decimal && decimal !== 0) return '';
+        const totalSeconds = Math.round(Number(decimal) * 3600);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return [hours, minutes, seconds]
+            .map(v => String(v).padStart(2, '0'))
+            .join(':');
+    };
+
+    const exportToCSV = () => {
+        const data = workHours.map(entry => ({
+            ID: entry.id,
+            'Work Type': entry.work_type,
+            Tracker: entry.tracker,
+            Date: entry.date,
+            Project: entry.project?.name,
+            Client: entry.project?.client?.name,
+            Hours: decimalToDuration(entry.hours),
+            Description: entry.description,
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'WorkHours');
+        XLSX.writeFile(workbook, 'work_hours_list.csv', { bookType: 'csv' });
+    };
 
     useEffect(() => {
         if (flash?.success) setToast(flash.success);
@@ -120,7 +150,15 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                         <div className="p-6 text-gray-900">
                             <div className="flex justify-between items-center">
                                 <h1 className="text-2xl font-bold mb-4">Work Hours</h1>
-                                <Link className="mb-4 inline-block px-4 py-2 bg-blue-600 text-white rounded" href={route('work-hours.create')}>Add Entry</Link>
+                                <div className="flex gap-2 items-center">
+                                    <Link className="mb-4 inline-block px-4 py-2 bg-blue-600 text-white rounded" href={route('work-hours.create')}>Add Entry</Link>
+                                    <button
+                                        onClick={exportToCSV}
+                                        className="mb-4 px-4 py-2 bg-yellow-500 text-white rounded"
+                                    >
+                                        Export to CSV
+                                    </button>
+                                </div>
                             </div>
                             <div className="mb-4 flex gap-2 flex-wrap">
                                 <div className="flex gap-2 mb-2">
