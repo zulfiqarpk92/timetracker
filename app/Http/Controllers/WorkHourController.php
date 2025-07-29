@@ -112,7 +112,8 @@ class WorkHourController extends Controller
 
     public function report(Request $request)
     {
-        $query = WorkHour::with('user');
+
+        $query = WorkHour::with('user', 'project', 'project.client');
         $filter = $request->input('filter', 'all');
         $startDate = $request->input('startDate');
         $endDate = $request->input('endDate');

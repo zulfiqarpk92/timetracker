@@ -175,8 +175,8 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.work_type}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.tracker}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.client}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project.client.name}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{timeFormat(entry.hours)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
                                         </tr>
