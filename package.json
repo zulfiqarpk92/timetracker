@@ -20,6 +20,7 @@
         "vite": "^7.0.6"
     },
     "dependencies": {
-        "lucide-react": "^0.532.0"
+        "lucide-react": "^0.532.0",
+        "react-datepicker": "^8.4.0"
     }
 }

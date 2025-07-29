@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { timeFormat } from '../helpers';
@@ -34,6 +36,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
     const [toast, setToast] = useState(flash?.success || '');
     const [activeFilter, setActiveFilter] = useState(filter);
     const [activeWorkType, setActiveWorkType] = useState(workType);
+    const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
+    const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
 
     useEffect(() => {
         if (flash?.success) setToast(flash.success);
@@ -63,6 +67,18 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
         setActiveFilter(filter);
         if (filter === 'all' && (workTypeFilter === 'all' || !workTypeFilter)) {
             router.get(route('work-hours.index'));
+        } else if (filter === 'custom') {
+            if (customStartDate && customEndDate) {
+                const params = {
+                    filter: 'custom',
+                    startDate: customStartDate.toISOString().slice(0, 10),
+                    endDate: customEndDate.toISOString().slice(0, 10)
+                };
+                if (workTypeFilter && workTypeFilter !== 'all') {
+                    params.workType = workTypeFilter;
+                }
+                router.get(route('work-hours.index'), params);
+            }
         } else {
             const { start, end } = getDateRange(filter);
             const params = { filter };
@@ -112,12 +128,41 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                     <button onClick={() => handleFilter('today')} className={`px-3 py-1 rounded ${activeFilter === 'today' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Today</button>
                                     <button onClick={() => handleFilter('week')} className={`px-3 py-1 rounded ${activeFilter === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>This Week</button>
                                     <button onClick={() => handleFilter('month')} className={`px-3 py-1 rounded ${activeFilter === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>This Month</button>
+                                    <button onClick={() => handleFilter('custom')} className={`px-3 py-1 rounded ${activeFilter === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Custom Range</button>
                                 </div>
+                                {activeFilter === 'custom' && (
+                                    <div className="flex gap-2 items-center mb-2">
+                                        <span>From:</span>
+                                        <DatePicker
+                                            selected={customStartDate}
+                                            onChange={date => setCustomStartDate(date)}
+                                            dateFormat="yyyy-MM-dd"
+                                            maxDate={customEndDate || undefined}
+                                            className="px-2 py-1 border rounded"
+                                        />
+                                        <span>To:</span>
+                                        <DatePicker
+                                            selected={customEndDate}
+                                            onChange={date => setCustomEndDate(date)}
+                                            dateFormat="yyyy-MM-dd"
+                                            minDate={customStartDate || undefined}
+                                            className="px-2 py-1 border rounded"
+                                        />
+                                        <button
+                                            onClick={() => handleFilter('custom')}
+                                            className="px-3 py-1 bg-blue-600 text-white rounded"
+                                            disabled={!customStartDate || !customEndDate}
+                                        >Apply</button>
+                                    </div>
+                                )}
                                 <div className="flex gap-2 mb-2">
                                     <button onClick={() => handleWorkTypeFilter('all')} className={`px-3 py-1 rounded ${activeWorkType === 'all' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>All Types</button>
                                     <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-3 py-1 rounded ${activeWorkType === 'tracker' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Tracker</button>
-                                    <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-3 py-1 rounded ${activeWorkType === 'fixed' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Fixed</button>
-                                    <button onClick={() => handleWorkTypeFilter('manual')} className={`px-3 py-1 rounded ${activeWorkType === 'manual' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Manual</button>
+                                    <button onClick={() => handleWorkTypeFilter('manual')} className={`px-3 py-1 rounded ${activeWorkType === 'manual' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Manual Time</button>
+                                    <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-3 py-1 rounded ${activeWorkType === 'test_task' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Test Task</button>
+                                    <button onClick={() => handleWorkTypeFilter('fixed_project')} className={`px-3 py-1 rounded ${activeWorkType === 'fixed_project' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Fixed Project</button>
+                                    <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-3 py-1 rounded ${activeWorkType === 'office_work' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Office Work</button>
+                                    <button onClick={() => handleWorkTypeFilter('outside_upwork')} className={`px-3 py-1 rounded ${activeWorkType === 'outside_upwork' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Outside of Upwork</button>
                                 </div>
                             </div>
                             <table className="min-w-full divide-y divide-gray-200">
