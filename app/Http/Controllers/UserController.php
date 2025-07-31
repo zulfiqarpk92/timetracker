@@ -50,7 +50,7 @@ class UserController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
-            'designation' => $validated['designation'],
+            'designation' => $validated['designation'] ?? null,
         ];
         
         // Only add avatar if we have one
