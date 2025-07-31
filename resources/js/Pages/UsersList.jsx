@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import AuthenticatedLayout from "../Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
+import Avatar from "../Components/Avatar";
 
 function Toast({ message, onClose }) {
     if (!message) return null;
@@ -98,6 +99,9 @@ export default function UsersList({ auth, users, flash }) {
                                             ID
                                         </th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Avatar
+                                        </th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Name
                                         </th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -116,6 +120,9 @@ export default function UsersList({ auth, users, flash }) {
                                         <tr key={user.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {user.id}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <Avatar user={user} size="md" />
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {user.name}

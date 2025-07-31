@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Ensure avatars directory exists
+        $avatarsPath = storage_path('app/public/avatars');
+        if (!file_exists($avatarsPath)) {
+            mkdir($avatarsPath, 0755, true);
+        }
     }
 }

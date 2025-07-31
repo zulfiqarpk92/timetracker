@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'avatar',
     ];
 
     /**
@@ -48,4 +49,14 @@ class User extends Authenticatable
         'admin' => 'Admin',
         'employee' => 'Employee',
     ];
+
+    /**
+     * Get the avatar URL attribute.
+     */
+    public function getAvatarUrlAttribute()
+    {
+        return $this->avatar 
+            ? asset('storage/' . $this->avatar)
+            : null;
+    }
 }

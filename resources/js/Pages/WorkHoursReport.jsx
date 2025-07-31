@@ -4,7 +4,6 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import Dropdown from '@/Components/Dropdown';
 import { timeFormat } from '../helpers';
 
 function Toast({ message, onClose }) {
@@ -41,6 +40,8 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const [activeUser, setActiveUser] = useState(userId);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
+    const [showUserOptions, setShowUserOptions] = useState(false);
+    const [userSearch, setUserSearch] = useState('');
 
     // Helper to format work type for display
     const formatWorkType = (workType) => {
@@ -106,8 +107,15 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
 
     const handleUserFilter = (id) => {
         setActiveUser(id);
+        setUserSearch('');
+        setShowUserOptions(false);
         handleFilter(activeFilter, activeWorkType, id);
     };
+
+    // Filter users based on search
+    const filteredUsers = users.filter(user =>
+        user.name.toLowerCase().includes(userSearch.toLowerCase())
+    );
 
     const handleFilter = (filter, workTypeFilter = activeWorkType, userFilter = activeUser) => {
         setActiveFilter(filter);
@@ -208,38 +216,49 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-3 py-1 rounded ${activeWorkType === 'outside_of_upwork' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Outside of Upwork</button>
                                 </div>
                                 <div className="flex gap-2 mb-2">
-                                    <Dropdown>
-                                        <Dropdown.Trigger>
-                                            <span className="inline-flex rounded-md">
-                                                <button
-                                                    type="button"
-                                                    className={`inline-flex items-center px-3 py-2 border text-sm leading-4 font-medium rounded-md ${activeUser > 0 ? 'bg-green-600 text-white' : 'text-gray-500 bg-white'} hover:text-gray-700 focus:outline-none transition ease-in-out duration-150`}
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Search or select user..."
+                                            className="px-3 py-2 border rounded-md w-48 text-sm"
+                                            value={
+                                                userSearch ||
+                                                (activeUser === 'all' ? '' : users.find(u => u.id == activeUser)?.name || '')
+                                            }
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setUserSearch(val);
+                                                if (val === '') {
+                                                    setActiveUser('all');
+                                                }
+                                                setShowUserOptions(true);
+                                            }}
+                                            onFocus={() => setShowUserOptions(true)}
+                                            onBlur={() => setTimeout(() => setShowUserOptions(false), 100)}
+                                        />
+                                        {showUserOptions && (
+                                            <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                <div
+                                                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${activeUser === 'all' ? 'bg-blue-50 text-blue-600' : ''}`}
+                                                    onClick={() => handleUserFilter('all')}
                                                 >
-                                                    {activeUser === 'all' ? 'All Users' : users.find(u => u.id == activeUser)?.name || 'Select User'}
-
-                                                    <svg
-                                                        className="ms-2 -me-0.5 h-4 w-4"
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        viewBox="0 0 20 20"
-                                                        fill="currentColor"
+                                                    All Users
+                                                </div>
+                                                {filteredUsers.map(user => (
+                                                    <div
+                                                        key={user.id}
+                                                        className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${activeUser == user.id ? 'bg-blue-50 text-blue-600' : ''}`}
+                                                        onClick={() => handleUserFilter(user.id)}
                                                     >
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                            clipRule="evenodd"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            </span>
-                                        </Dropdown.Trigger>
-
-                                        <Dropdown.Content>
-                                            <button onClick={() => handleUserFilter('all')} className="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">All Users</button>
-                                            {users.map(u => (
-                                                <button key={u.id} onClick={() => handleUserFilter(u.id)} className={`block w-full px-4 py-2 text-start text-sm leading-5 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out ${activeUser == u.id ? 'bg-green-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>{u.name}</button>
-                                            ))}
-                                        </Dropdown.Content>
-                                    </Dropdown>
+                                                        {user.name}
+                                                    </div>
+                                                ))}
+                                                {filteredUsers.length === 0 && userSearch && (
+                                                    <div className="px-3 py-2 text-gray-500 text-sm">No users found</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <table className="min-w-full divide-y divide-gray-200">

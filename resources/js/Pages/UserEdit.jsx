@@ -1,23 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 
 export default function UserEdit({ auth, user }) {
+    const [avatarPreview, setAvatarPreview] = useState(
+        user.avatar ? `/storage/${user.avatar}` : null
+    );
+    
     const editForm = useForm({
-        id: user.id,
         name: user.name,
         email: user.email,
         password: '',
         role: user.role || 'employee',
+        avatar: null,
+        _method: 'PUT'
     });
 
     const handleEdit = (e) => {
         e.preventDefault();
-        editForm.put(route('users.update', editForm.data.id), {
+        
+        editForm.post(route('users.update', user.id), {
+            forceFormData: true,
+            preserveScroll: true,
             onSuccess: () => {
+                console.log('User updated successfully');
                 editForm.setData('password', '');
             },
+            onError: (errors) => {
+                console.log('Validation errors:', errors);
+            }
         });
+    };
+
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            editForm.setData('avatar', file);
+            const reader = new FileReader();
+            reader.onload = () => {
+                setAvatarPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     return (
@@ -39,7 +63,6 @@ export default function UserEdit({ auth, user }) {
                                         value={editForm.data.name}
                                         onChange={e => editForm.setData('name', e.target.value)}
                                         className="border rounded px-2 py-1 w-full"
-                                        required
                                     />
                                     {editForm.errors.name && (
                                         <div className="text-red-600 text-sm">{editForm.errors.name}</div>
@@ -52,7 +75,6 @@ export default function UserEdit({ auth, user }) {
                                         value={editForm.data.email}
                                         onChange={e => editForm.setData('email', e.target.value)}
                                         className="border rounded px-2 py-1 w-full"
-                                        required
                                     />
                                     {editForm.errors.email && (
                                         <div className="text-red-600 text-sm">{editForm.errors.email}</div>
@@ -63,13 +85,33 @@ export default function UserEdit({ auth, user }) {
                                         value={editForm.data.role}
                                         onChange={e => editForm.setData('role', e.target.value)}
                                         className="border rounded px-2 py-1 w-full"
-                                        required
                                     >
                                         <option value="employee">Employee</option>
                                         <option value="admin">Admin</option>
                                     </select>
                                     {editForm.errors.role && (
                                         <div className="text-red-600 text-sm">{editForm.errors.role}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block mb-1 font-medium">Avatar</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleAvatarChange}
+                                        className="border rounded px-2 py-1 w-full"
+                                    />
+                                    {editForm.errors.avatar && (
+                                        <div className="text-red-600 text-sm">{editForm.errors.avatar}</div>
+                                    )}
+                                    {avatarPreview && (
+                                        <div className="mt-2">
+                                            <img 
+                                                src={avatarPreview} 
+                                                alt="Avatar preview" 
+                                                className="w-16 h-16 rounded-full object-cover border"
+                                            />
+                                        </div>
                                     )}
                                 </div>
                                 <div>
@@ -85,8 +127,13 @@ export default function UserEdit({ auth, user }) {
                                     )}
                                 </div>
                                 <div className="flex gap-2">
-                                    <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded">
-                                        Save
+                                    <button 
+                                        type="submit" 
+                                        className="bg-blue-600 text-white px-3 py-1 rounded disabled:bg-blue-300"
+                                        disabled={editForm.processing}
+                                        onClick={() => console.log('🔘 Save button clicked!')}
+                                    >
+                                        {editForm.processing ? 'Saving...' : 'Save'}
                                     </button>
                                     <Link href={route('users.index')} className="bg-gray-400 text-white px-3 py-1 rounded">Cancel</Link>
                                 </div>

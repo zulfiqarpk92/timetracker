@@ -1,22 +1,64 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 
 export default function UserCreate({ auth }) {
+    const [avatarPreview, setAvatarPreview] = useState(null);
+    
     const createForm = useForm({
         name: '',
         email: '',
         password: '',
         role: 'employee',
+        avatar: null,
     });
 
     const handleCreate = (e) => {
         e.preventDefault();
+        
+        console.log('Form submission started');
+        console.log('Form data:', createForm.data);
+        console.log('Has avatar:', !!createForm.data.avatar);
+        
         createForm.post(route('users.store'), {
-            onSuccess: () => {
-                createForm.reset();
+            forceFormData: true,
+            preserveScroll: true,
+            onStart: () => {
+                console.log('Request started');
             },
+            onSuccess: (response) => {
+                console.log('Success response:', response);
+                createForm.reset();
+                setAvatarPreview(null);
+            },
+            onError: (errors) => {
+                console.log('Form errors:', errors);
+            },
+            onFinish: () => {
+                console.log('Request finished');
+            }
         });
+    };
+
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        console.log('Avatar file selected:', file);
+        
+        if (file) {
+            console.log('Setting avatar file:', file.name, file.size, file.type);
+            createForm.setData('avatar', file);
+            
+            const reader = new FileReader();
+            reader.onload = () => {
+                setAvatarPreview(reader.result);
+                console.log('Avatar preview set');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            console.log('No file selected, clearing avatar');
+            createForm.setData('avatar', null);
+            setAvatarPreview(null);
+        }
     };
 
     return (
@@ -71,6 +113,27 @@ export default function UserCreate({ auth }) {
                                     )}
                                 </div>
                                 <div>
+                                    <label className="block mb-1 font-medium">Avatar</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleAvatarChange}
+                                        className="border rounded px-2 py-1 w-full"
+                                    />
+                                    {createForm.errors.avatar && (
+                                        <div className="text-red-600 text-sm">{createForm.errors.avatar}</div>
+                                    )}
+                                    {avatarPreview && (
+                                        <div className="mt-2">
+                                            <img 
+                                                src={avatarPreview} 
+                                                alt="Avatar preview" 
+                                                className="w-16 h-16 rounded-full object-cover border"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
                                     <label className="block mb-1 font-medium">Role</label>
                                     <select
                                         value={createForm.data.role}
@@ -86,8 +149,12 @@ export default function UserCreate({ auth }) {
                                     )}
                                 </div>
                                 <div className="flex gap-2">
-                                    <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded">
-                                        Create
+                                    <button 
+                                        type="submit" 
+                                        className="bg-green-600 text-white px-3 py-1 rounded disabled:bg-green-300"
+                                        disabled={createForm.processing}
+                                    >
+                                        {createForm.processing ? 'Creating...' : 'Create'}
                                     </button>
                                     <Link href={route('users.index')} className="bg-gray-400 text-white px-3 py-1 rounded">Cancel</Link>
                                 </div>
