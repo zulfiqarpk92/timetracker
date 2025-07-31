@@ -1,6 +1,6 @@
 import React from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 
 
 export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
@@ -167,6 +167,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                     }}
                                     onFocus={() => setShowProjectOptions(true)}
                                     onBlur={() => setTimeout(() => setShowProjectOptions(false), 100)}
+                                    required
                                 />
                                 {showProjectOptions && (
                                     <div className="absolute z-10 w-full bg-[#10171b] border border-teal-700/40 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
@@ -194,7 +195,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                         )}
                                     </div>
                                 )}
-                                {createForm.errors.project && <div className={errorClass}>{createForm.errors.project}</div>}
+                                {createForm.errors.project_id && <div className={errorClass}>{createForm.errors.project_id}</div>}
                             </div>
                             {/* Hours & Minutes (side by side) */}
                             <div className="col-span-1 md:col-span-2 flex gap-4">

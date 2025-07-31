@@ -42,6 +42,19 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
 
+    // Helper to format work type for display
+    const formatWorkType = (workType) => {
+        const workTypeMap = {
+            'tracker': 'Tracker',
+            'manual': 'Manual Time',
+            'test_task': 'Test Task',
+            'fixed': 'Fixed Project',
+            'office_work': 'Office Work',
+            'outside_of_upwork': 'Outside of Upwork'
+        };
+        return workTypeMap[workType] || workType;
+    };
+
     // Helper to convert decimal hours to HH:mm:ss
     const decimalToDuration = (decimal) => {
         if (!decimal && decimal !== 0) return '';
@@ -57,11 +70,11 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const exportToCSV = () => {
         const data = workHours.map(entry => ({
             User: entry.user.name,
-            'Work Type': entry.work_type,
+            'Work Type': formatWorkType(entry.work_type),
             Tracker: entry.tracker,
             Date: entry.date,
-            Project: entry.project.name,
-            Client: entry.project.client.name,
+            Project: entry.project?.name || 'No Project',
+            Client: entry.project?.client?.name || 'No Client',
             Hours: decimalToDuration(entry.hours),
             Description: entry.description,
         }));
@@ -190,9 +203,9 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-3 py-1 rounded ${activeWorkType === 'tracker' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Tracker</button>
                                     <button onClick={() => handleWorkTypeFilter('manual')} className={`px-3 py-1 rounded ${activeWorkType === 'manual' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Manual Time</button>
                                     <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-3 py-1 rounded ${activeWorkType === 'test_task' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Test Task</button>
-                                    <button onClick={() => handleWorkTypeFilter('fixed_project')} className={`px-3 py-1 rounded ${activeWorkType === 'fixed_project' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Fixed Project</button>
+                                    <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-3 py-1 rounded ${activeWorkType === 'fixed' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Fixed Project</button>
                                     <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-3 py-1 rounded ${activeWorkType === 'office_work' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Office Work</button>
-                                    <button onClick={() => handleWorkTypeFilter('outside_upwork')} className={`px-3 py-1 rounded ${activeWorkType === 'outside_upwork' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Outside of Upwork</button>
+                                    <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-3 py-1 rounded ${activeWorkType === 'outside_of_upwork' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Outside of Upwork</button>
                                 </div>
                                 <div className="flex gap-2 mb-2">
                                     <Dropdown>
@@ -240,19 +253,24 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {workHours.map(entry => (
                                         <tr key={entry.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.user.name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.work_type}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatWorkType(entry.work_type)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.tracker}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project.name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project.client.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project?.name || 'No Project'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project?.client?.name || 'No Client'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{timeFormat(entry.hours)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <Link href={route('work-hours.edit', entry.id)} className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</Link>
+                                                <button onClick={() => handleDelete(entry.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
