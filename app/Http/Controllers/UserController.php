@@ -94,7 +94,7 @@ class UserController extends Controller
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->role = $validated['role'];
-        $user->designation = $validated['designation'];
+        $user->designation = $validated['designation'] ?? null;
         
         // Only update password if it's provided and not empty
         if (!empty($validated['password']) && $validated['password'] !== '') {
