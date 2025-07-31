@@ -10,6 +10,7 @@ export default function UserCreate({ auth }) {
         email: '',
         password: '',
         role: 'employee',
+        designation: '',
         avatar: null,
     });
 
@@ -110,6 +111,18 @@ export default function UserCreate({ auth }) {
                                     />
                                     {createForm.errors.password && (
                                         <div className="text-red-600 text-sm">{createForm.errors.password}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <input
+                                        type="text"
+                                        placeholder="Designation/Job Role"
+                                        value={createForm.data.designation}
+                                        onChange={e => createForm.setData('designation', e.target.value)}
+                                        className="border rounded px-2 py-1 w-full"
+                                    />
+                                    {createForm.errors.designation && (
+                                        <div className="text-red-600 text-sm">{createForm.errors.designation}</div>
                                     )}
                                 </div>
                                 <div>

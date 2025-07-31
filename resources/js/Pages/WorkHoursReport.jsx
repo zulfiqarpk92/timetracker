@@ -71,6 +71,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const exportToCSV = () => {
         const data = workHours.map(entry => ({
             User: entry.user.name,
+            Designation: entry.user.designation || 'N/A',
             'Work Type': formatWorkType(entry.work_type),
             Tracker: entry.tracker,
             Date: entry.date,
@@ -265,6 +266,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                 <thead>
                                     <tr>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Designation</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tracker</th>
                                         <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -279,6 +281,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     {workHours.map(entry => (
                                         <tr key={entry.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.user.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.user.designation || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatWorkType(entry.work_type)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.tracker}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
@@ -295,7 +298,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colSpan={6}></td>
+                                        <td colSpan={7}></td>
                                         <td className="px-6 py-4 font-bold text-right text-gray-900">
                                             Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                         </td>

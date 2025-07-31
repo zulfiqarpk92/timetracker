@@ -12,6 +12,7 @@ export default function UserEdit({ auth, user }) {
         email: user.email,
         password: '',
         role: user.role || 'employee',
+        designation: user.designation || '',
         avatar: null,
         _method: 'PUT'
     });
@@ -91,6 +92,18 @@ export default function UserEdit({ auth, user }) {
                                     </select>
                                     {editForm.errors.role && (
                                         <div className="text-red-600 text-sm">{editForm.errors.role}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <input
+                                        type="text"
+                                        placeholder="Designation/Job Role"
+                                        value={editForm.data.designation}
+                                        onChange={e => editForm.setData('designation', e.target.value)}
+                                        className="border rounded px-2 py-1 w-full"
+                                    />
+                                    {editForm.errors.designation && (
+                                        <div className="text-red-600 text-sm">{editForm.errors.designation}</div>
                                     )}
                                 </div>
                                 <div>

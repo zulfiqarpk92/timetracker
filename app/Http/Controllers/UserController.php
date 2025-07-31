@@ -30,6 +30,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:8',
             'role' => 'required|in:admin,employee',
+            'designation' => 'nullable|string|max:255',
         ];
         
         // Only add avatar validation if file is present
@@ -49,6 +50,7 @@ class UserController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
+            'designation' => $validated['designation'],
         ];
         
         // Only add avatar if we have one
@@ -79,6 +81,7 @@ class UserController extends Controller
             ],
             'password' => 'nullable|string|min:8',
             'role' => 'required|in:admin,employee',
+            'designation' => 'nullable|string|max:255',
         ];
         
         // Only add avatar validation if file is present
@@ -91,6 +94,7 @@ class UserController extends Controller
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->role = $validated['role'];
+        $user->designation = $validated['designation'];
         
         // Only update password if it's provided and not empty
         if (!empty($validated['password']) && $validated['password'] !== '') {
