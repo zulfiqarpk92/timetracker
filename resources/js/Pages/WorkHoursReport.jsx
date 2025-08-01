@@ -32,16 +32,25 @@ const getDateRange = (filter) => {
     return { start, end };
 };
 
-export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all' }) {
+export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all', designation = 'all', tracker = 'all', project = 'all', client = 'all' }) {
     const [deleteId, setDeleteId] = useState(null);
     const [toast, setToast] = useState(flash?.success || '');
     const [activeFilter, setActiveFilter] = useState(filter);
     const [activeWorkType, setActiveWorkType] = useState(workType);
     const [activeUser, setActiveUser] = useState(userId);
+    const [activeDesignation, setActiveDesignation] = useState(designation);
+    const [activeTracker, setActiveTracker] = useState(tracker);
+    const [activeProject, setActiveProject] = useState(project);
+    const [activeClient, setActiveClient] = useState(client);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const [userSearchTerm, setUserSearchTerm] = useState('');
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [designationSearch, setDesignationSearch] = useState('');
+    const [trackerSearch, setTrackerSearch] = useState('');
+    const [projectSearch, setProjectSearch] = useState('');
+    const [clientSearch, setClientSearch] = useState('');
     const userDropdownRef = useRef(null);
 
     // Close dropdown when clicking outside
@@ -70,6 +79,27 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
             'outside_of_upwork': 'Outside of Upwork'
         };
         return workTypeMap[workType] || workType;
+    };
+
+    // Helper to get unique values for filters
+    const getUniqueDesignations = () => {
+        const designations = [...new Set(workHours.map(entry => entry.user?.designation).filter(Boolean))];
+        return designations.sort();
+    };
+
+    const getUniqueTrackers = () => {
+        const trackers = [...new Set(workHours.map(entry => entry.tracker).filter(Boolean))];
+        return trackers.sort();
+    };
+
+    const getUniqueProjects = () => {
+        const projects = [...new Set(workHours.map(entry => entry.project?.name).filter(Boolean))];
+        return projects.sort();
+    };
+
+    const getUniqueClients = () => {
+        const clients = [...new Set(workHours.map(entry => entry.project?.client?.name).filter(Boolean))];
+        return clients.sort();
     };
 
     // Helper to convert decimal hours to HH:mm:ss
@@ -141,7 +171,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         return user ? user.name : 'Select User';
     };
 
-    const handleFilter = (filter, workTypeFilter = activeWorkType, userFilter = activeUser) => {
+    const handleFilter = (filter, workTypeFilter = activeWorkType, userFilter = activeUser, designationFilter = activeDesignation, trackerFilter = activeTracker, projectFilter = activeProject, clientFilter = activeClient) => {
         setActiveFilter(filter);
         const params = { filter };
         if (filter === 'custom') {
@@ -160,12 +190,48 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         if (userFilter && userFilter !== 'all') {
             params.userId = userFilter;
         }
+        if (designationFilter && designationFilter !== 'all') {
+            params.designation = designationFilter;
+        }
+        if (trackerFilter && trackerFilter !== 'all') {
+            params.tracker = trackerFilter;
+        }
+        if (projectFilter && projectFilter !== 'all') {
+            params.project = projectFilter;
+        }
+        if (clientFilter && clientFilter !== 'all') {
+            params.client = clientFilter;
+        }
         router.get(route('work-hours.report'), params);
     };
 
     const handleWorkTypeFilter = (type) => {
         setActiveWorkType(type);
         handleFilter(activeFilter, type);
+    };
+
+    const handleDesignationFilter = (designation) => {
+        setActiveDesignation(designation);
+        setDesignationSearch('');
+        handleFilter(activeFilter, activeWorkType, activeUser, designation);
+    };
+
+    const handleTrackerFilter = (tracker) => {
+        setActiveTracker(tracker);
+        setTrackerSearch('');
+        handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, tracker);
+    };
+
+    const handleProjectFilter = (project) => {
+        setActiveProject(project);
+        setProjectSearch('');
+        handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, activeTracker, project);
+    };
+
+    const handleClientFilter = (client) => {
+        setActiveClient(client);
+        setClientSearch('');
+        handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, activeTracker, activeProject, client);
     };
 
     return (
@@ -204,118 +270,355 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                 </button>
                             </div>
                             <div className="mb-6 space-y-4">
-                                <div className="bg-gradient-to-r from-green-50 to-yellow-50 p-4 rounded-lg border border-green-200">
-                                    <h3 className="text-sm font-semibold text-green-800 mb-3">Filter by Date Range</h3>
-                                    <div className="flex gap-2 flex-wrap">
-                                        <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>All Dates</button>
-                                        <button onClick={() => handleFilter('today')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'today' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Today</button>
-                                        <button onClick={() => handleFilter('week')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'week' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Week</button>
-                                        <button onClick={() => handleFilter('month')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'month' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Month</button>
-                                        <button onClick={() => handleFilter('custom')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'custom' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Custom Range</button>
-                                    </div>
-                                    {activeFilter === 'custom' && (
-                                        <div className="flex gap-3 items-center mt-4 p-3 bg-white rounded-lg border border-green-200">
-                                            <span className="text-green-700 font-medium">From:</span>
-                                            <DatePicker
-                                                selected={customStartDate}
-                                                onChange={date => setCustomStartDate(date)}
-                                                dateFormat="yyyy-MM-dd"
-                                                maxDate={customEndDate || undefined}
-                                                className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                            />
-                                            <span className="text-green-700 font-medium">To:</span>
-                                            <DatePicker
-                                                selected={customEndDate}
-                                                onChange={date => setCustomEndDate(date)}
-                                                dateFormat="yyyy-MM-dd"
-                                                minDate={customStartDate || undefined}
-                                                className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                            />
-                                            <button
-                                                onClick={() => handleFilter('custom')}
-                                                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
-                                                disabled={!customStartDate || !customEndDate}
-                                            >Apply</button>
+                                {/* Main Filters Row */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    {/* Date Range Filter */}
+                                    <div className="bg-gradient-to-r from-green-50 to-yellow-50 p-4 rounded-lg border border-green-200">
+                                        <h3 className="text-sm font-semibold text-green-800 mb-3">Filter by Date Range</h3>
+                                        <div className="flex gap-2 flex-wrap">
+                                            <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>All Dates</button>
+                                            <button onClick={() => handleFilter('today')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'today' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Today</button>
+                                            <button onClick={() => handleFilter('week')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'week' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Week</button>
+                                            <button onClick={() => handleFilter('month')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'month' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Month</button>
+                                            <button onClick={() => handleFilter('custom')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'custom' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Custom Range</button>
                                         </div>
-                                    )}
-                                </div>
-                                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
-                                    <h3 className="text-sm font-semibold text-yellow-800 mb-3">Filter by Work Type</h3>
-                                    <div className="flex gap-2 flex-wrap">
-                                        <button onClick={() => handleWorkTypeFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'all' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>All Types</button>
-                                        <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'tracker' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Tracker</button>
-                                        <button onClick={() => handleWorkTypeFilter('manual')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'manual' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Manual Time</button>
-                                        <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'test_task' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Test Task</button>
-                                        <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'fixed' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Fixed Project</button>
-                                        <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'office_work' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Office Work</button>
-                                        <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'outside_of_upwork' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Outside of Upwork</button>
+                                        {activeFilter === 'custom' && (
+                                            <div className="flex gap-3 items-center mt-4 p-3 bg-white rounded-lg border border-green-200">
+                                                <span className="text-green-700 font-medium">From:</span>
+                                                <DatePicker
+                                                    selected={customStartDate}
+                                                    onChange={date => setCustomStartDate(date)}
+                                                    dateFormat="yyyy-MM-dd"
+                                                    maxDate={customEndDate || undefined}
+                                                    className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                />
+                                                <span className="text-green-700 font-medium">To:</span>
+                                                <DatePicker
+                                                    selected={customEndDate}
+                                                    onChange={date => setCustomEndDate(date)}
+                                                    dateFormat="yyyy-MM-dd"
+                                                    minDate={customStartDate || undefined}
+                                                    className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                />
+                                                <button
+                                                    onClick={() => handleFilter('custom')}
+                                                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
+                                                    disabled={!customStartDate || !customEndDate}
+                                                >Apply</button>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                                <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
-                                    <h3 className="text-sm font-semibold text-blue-800 mb-3">Filter by User</h3>
-                                    <div className="relative w-64" ref={userDropdownRef}>
-                                        <button
-                                            type="button"
-                                            className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-left flex items-center justify-between hover:bg-blue-50 transition-colors"
-                                            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                                        >
-                                            <span className="truncate">{getSelectedUserName()}</span>
-                                            <svg 
-                                                className={`w-4 h-4 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} 
-                                                fill="none" 
-                                                stroke="currentColor" 
-                                                viewBox="0 0 24 24"
+
+                                    {/* User Filter */}
+                                    <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
+                                        <h3 className="text-sm font-semibold text-blue-800 mb-3">Filter by User</h3>
+                                        <div className="relative w-full" ref={userDropdownRef}>
+                                            <button
+                                                type="button"
+                                                className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-left flex items-center justify-between hover:bg-blue-50 transition-colors"
+                                                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                                             >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </button>
-                                        
-                                        {userDropdownOpen && (
-                                            <div className="absolute z-50 w-full mt-1 bg-white border border-blue-300 rounded-lg shadow-xl max-h-60 overflow-hidden">
-                                                <div className="p-2 border-b border-blue-200">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Search users..."
-                                                        className="w-full px-3 py-2 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                        value={userSearchTerm}
-                                                        onChange={(e) => setUserSearchTerm(e.target.value)}
-                                                        autoFocus
-                                                    />
-                                                </div>
-                                                <div className="max-h-48 overflow-y-auto">
-                                                    <div
-                                                        className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser === 'all' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
-                                                        onClick={() => handleUserFilter('all')}
-                                                    >
-                                                        {activeUser === 'all' && (
-                                                            <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                            </svg>
-                                                        )}
-                                                        All Users
+                                                <span className="truncate">{getSelectedUserName()}</span>
+                                                <svg 
+                                                    className={`w-4 h-4 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} 
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </button>
+                                            
+                                            {userDropdownOpen && (
+                                                <div className="absolute z-50 w-full mt-1 bg-white border border-blue-300 rounded-lg shadow-xl max-h-60 overflow-hidden">
+                                                    <div className="p-2 border-b border-blue-200">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search users..."
+                                                            className="w-full px-3 py-2 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            value={userSearchTerm}
+                                                            onChange={(e) => setUserSearchTerm(e.target.value)}
+                                                            autoFocus
+                                                        />
                                                     </div>
-                                                    {filteredUsers.map(user => (
+                                                    <div className="max-h-48 overflow-y-auto">
                                                         <div
-                                                            key={user.id}
-                                                            className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser == user.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
-                                                            onClick={() => handleUserFilter(user.id)}
+                                                            className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser === 'all' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+                                                            onClick={() => handleUserFilter('all')}
                                                         >
-                                                            {activeUser == user.id && (
+                                                            {activeUser === 'all' && (
                                                                 <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                 </svg>
                                                             )}
-                                                            <span className="truncate">{user.name}</span>
+                                                            All Users
                                                         </div>
-                                                    ))}
-                                                    {filteredUsers.length === 0 && userSearchTerm && (
-                                                        <div className="px-4 py-2 text-gray-500 text-sm">No users found</div>
-                                                    )}
+                                                        {filteredUsers.map(user => (
+                                                            <div
+                                                                key={user.id}
+                                                                className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser == user.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+                                                                onClick={() => handleUserFilter(user.id)}
+                                                            >
+                                                                {activeUser == user.id && (
+                                                                    <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                )}
+                                                                <span className="truncate">{user.name}</span>
+                                                            </div>
+                                                        ))}
+                                                        {filteredUsers.length === 0 && userSearchTerm && (
+                                                            <div className="px-4 py-2 text-gray-500 text-sm">No users found</div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* Advanced Filters Toggle */}
+                                <div className="flex justify-center">
+                                    <button
+                                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        <svg className={`w-5 h-5 mr-2 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                        {showAdvancedFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+                                    </button>
+                                </div>
+
+                                {/* Advanced Filters Section */}
+                                {showAdvancedFilters && (
+                                    <div className="space-y-4">
+                                        {/* Work Type Filter */}
+                                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
+                                            <h3 className="text-sm font-semibold text-yellow-800 mb-3">Filter by Work Type</h3>
+                                            <div className="flex gap-2 flex-wrap">
+                                                <button onClick={() => handleWorkTypeFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'all' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>All Types</button>
+                                                <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'tracker' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Tracker</button>
+                                                <button onClick={() => handleWorkTypeFilter('manual')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'manual' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Manual Time</button>
+                                                <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'test_task' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Test Task</button>
+                                                <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'fixed' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Fixed Project</button>
+                                                <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'office_work' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Office Work</button>
+                                                <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'outside_of_upwork' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Outside of Upwork</button>
+                                            </div>
+                                        </div>
+
+                                        {/* Secondary Filters Grid */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {/* Designation Filter */}
+                                            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
+                                                <h3 className="text-sm font-semibold text-indigo-800 mb-3">Filter by Designation</h3>
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search designations..."
+                                                            className="w-full px-3 py-2 text-sm border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                            value={designationSearch}
+                                                            onChange={(e) => setDesignationSearch(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-32 overflow-y-auto space-y-1">
+                                                        <button 
+                                                            onClick={() => handleDesignationFilter('all')} 
+                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeDesignation === 'all' ? 'bg-indigo-100 text-indigo-800 font-medium' : 'hover:bg-indigo-50 text-indigo-700'}`}
+                                                        >
+                                                            All Designations
+                                                        </button>
+                                                        {getUniqueDesignations()
+                                                            .filter(designation => designation.toLowerCase().includes(designationSearch.toLowerCase()))
+                                                            .map(designation => (
+                                                            <button 
+                                                                key={designation} 
+                                                                onClick={() => handleDesignationFilter(designation)} 
+                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeDesignation === designation ? 'bg-indigo-100 text-indigo-800 font-medium' : 'hover:bg-indigo-50 text-indigo-700'}`}
+                                                                title={designation}
+                                                            >
+                                                                {designation}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Tracker Filter */}
+                                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                                                <h3 className="text-sm font-semibold text-purple-800 mb-3">Filter by Tracker</h3>
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search trackers..."
+                                                            className="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                                            value={trackerSearch}
+                                                            onChange={(e) => setTrackerSearch(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-32 overflow-y-auto space-y-1">
+                                                        <button 
+                                                            onClick={() => handleTrackerFilter('all')} 
+                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeTracker === 'all' ? 'bg-purple-100 text-purple-800 font-medium' : 'hover:bg-purple-50 text-purple-700'}`}
+                                                        >
+                                                            All Trackers
+                                                        </button>
+                                                        {getUniqueTrackers()
+                                                            .filter(tracker => tracker.toLowerCase().includes(trackerSearch.toLowerCase()))
+                                                            .map(tracker => (
+                                                            <button 
+                                                                key={tracker} 
+                                                                onClick={() => handleTrackerFilter(tracker)} 
+                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm capitalize ${activeTracker === tracker ? 'bg-purple-100 text-purple-800 font-medium' : 'hover:bg-purple-50 text-purple-700'}`}
+                                                                title={tracker}
+                                                            >
+                                                                {tracker}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Project Filter */}
+                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                                                <h3 className="text-sm font-semibold text-green-800 mb-3">Filter by Project</h3>
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search projects..."
+                                                            className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                            value={projectSearch}
+                                                            onChange={(e) => setProjectSearch(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-32 overflow-y-auto space-y-1">
+                                                        <button 
+                                                            onClick={() => handleProjectFilter('all')} 
+                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeProject === 'all' ? 'bg-green-100 text-green-800 font-medium' : 'hover:bg-green-50 text-green-700'}`}
+                                                        >
+                                                            All Projects
+                                                        </button>
+                                                        {getUniqueProjects()
+                                                            .filter(project => project.toLowerCase().includes(projectSearch.toLowerCase()))
+                                                            .map(project => (
+                                                            <button 
+                                                                key={project} 
+                                                                onClick={() => handleProjectFilter(project)} 
+                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeProject === project ? 'bg-green-100 text-green-800 font-medium' : 'hover:bg-green-50 text-green-700'}`}
+                                                                title={project}
+                                                            >
+                                                                {project}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Client Filter */}
+                                            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg border border-teal-200">
+                                                <h3 className="text-sm font-semibold text-teal-800 mb-3">Filter by Client</h3>
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search clients..."
+                                                            className="w-full px-3 py-2 text-sm border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                            value={clientSearch}
+                                                            onChange={(e) => setClientSearch(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-32 overflow-y-auto space-y-1">
+                                                        <button 
+                                                            onClick={() => handleClientFilter('all')} 
+                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeClient === 'all' ? 'bg-teal-100 text-teal-800 font-medium' : 'hover:bg-teal-50 text-teal-700'}`}
+                                                        >
+                                                            All Clients
+                                                        </button>
+                                                        {getUniqueClients()
+                                                            .filter(client => client.toLowerCase().includes(clientSearch.toLowerCase()))
+                                                            .map(client => (
+                                                            <button 
+                                                                key={client} 
+                                                                onClick={() => handleClientFilter(client)} 
+                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeClient === client ? 'bg-teal-100 text-teal-800 font-medium' : 'hover:bg-teal-50 text-teal-700'}`}
+                                                                title={client}
+                                                            >
+                                                                {client}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Active Filters Summary */}
+                                {(activeFilter !== 'all' || activeWorkType !== 'all' || activeUser !== 'all' || activeDesignation !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
+                                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-4">
+                                        <h3 className="text-sm font-semibold text-blue-800 mb-2">Active Filters:</h3>
+                                        <div className="flex gap-2 flex-wrap text-xs">
+                                            {activeFilter !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-md">
+                                                    Date: {activeFilter === 'custom' ? `${customStartDate?.toLocaleDateString()} - ${customEndDate?.toLocaleDateString()}` : activeFilter}
+                                                </span>
+                                            )}
+                                            {activeWorkType !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">
+                                                    Work Type: {formatWorkType(activeWorkType)}
+                                                </span>
+                                            )}
+                                            {activeUser !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md">
+                                                    User: {getSelectedUserName()}
+                                                </span>
+                                            )}
+                                            {activeDesignation !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-800 rounded-md">
+                                                    Designation: {activeDesignation}
+                                                </span>
+                                            )}
+                                            {activeTracker !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded-md">
+                                                    Tracker: {activeTracker}
+                                                </span>
+                                            )}
+                                            {activeProject !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-md">
+                                                    Project: {activeProject.length > 15 ? `${activeProject.substring(0, 15)}...` : activeProject}
+                                                </span>
+                                            )}
+                                            {activeClient !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 bg-teal-100 text-teal-800 rounded-md">
+                                                    Client: {activeClient.length > 15 ? `${activeClient.substring(0, 15)}...` : activeClient}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                setActiveFilter('all');
+                                                setActiveWorkType('all');
+                                                setActiveUser('all');
+                                                setActiveDesignation('all');
+                                                setActiveTracker('all');
+                                                setActiveProject('all');
+                                                setActiveClient('all');
+                                                setCustomStartDate(null);
+                                                setCustomEndDate(null);
+                                                router.get(route('work-hours.report'));
+                                            }}
+                                            className="mt-3 inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all text-xs"
+                                        >
+                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            Clear All Filters
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                             <div className="overflow-x-auto shadow-xl ring-1 ring-black ring-opacity-5 rounded-xl">
                                 <table className="min-w-full divide-y divide-gray-200 table-fixed">

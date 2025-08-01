@@ -5,8 +5,8 @@ import { Head, useForm, Link, router } from '@inertiajs/react';
 
 export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
     const createForm = useForm({
-        date: '',
-        hours: '',
+        date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+        hours: '0',
         minutes: '0',
         description: '',
         work_type: 'tracker',
@@ -216,14 +216,14 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                             min="0"
                                             max="24"
                                             placeholder="0"
-                                            value={createForm.data.hours || ''}
+                                            value={createForm.data.hours || '0'}
                                             onChange={e => {
                                                 let val = e.target.value;
                                                 let num = parseInt(val.replace(/[^0-9]/g, ''));
-                                                if (isNaN(num)) num = '';
+                                                if (isNaN(num)) num = '0';
                                                 else if (num > 24) num = 24;
                                                 else if (num < 0) num = 0;
-                                                createForm.setData('hours', num === '' ? '' : num.toString());
+                                                createForm.setData('hours', num === '' ? '0' : num.toString());
                                             }}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                             required
