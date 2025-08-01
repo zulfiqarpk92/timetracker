@@ -20,7 +20,14 @@ class WorkHourController extends Controller
 
     public function index(Request $request)
     {
-        $query = WorkHour::with('user', 'project', 'project.client')->where('user_id', auth()->id());
+        $user = auth()->user();
+        $query = WorkHour::with('user', 'project', 'project.client');
+        
+        // If user is employee, only show their own work hours
+        if ($user->role === 'employee') {
+            $query->where('user_id', $user->id);
+        }
+        
         $filter = $request->input('filter', 'all');
         $startDate = $request->input('startDate');
         $endDate = $request->input('endDate');
@@ -38,7 +45,10 @@ class WorkHourController extends Controller
             'startDate' => $startDate,
             'endDate' => $endDate,
             'workType' => $workType,
-            'flash' => ['success' => $request->session()->get('success') ?? ''],
+            'flash' => [
+                'success' => $request->session()->get('success') ?? '',
+                'error' => $request->session()->get('error') ?? ''
+            ],
         ]);
     }
 
@@ -75,6 +85,12 @@ class WorkHourController extends Controller
 
     public function edit(WorkHour $workHour)
     {
+        // Check if user can edit this work hour entry
+        $user = auth()->user();
+        if ($user->role === 'employee' && $workHour->user_id !== $user->id) {
+            return redirect()->route('work-hours.index')->with('error', 'You can only edit your own work entries.');
+        }
+
         $projects = Project::select('id', 'name', 'client_id')
             ->with(['client:id,name'])
             ->orderBy('name')
@@ -88,6 +104,12 @@ class WorkHourController extends Controller
 
     public function update(Request $request, WorkHour $workHour)
     {
+        // Check if user can update this work hour entry
+        $user = auth()->user();
+        if ($user->role === 'employee' && $workHour->user_id !== $user->id) {
+            return redirect()->route('work-hours.index')->with('error', 'You can only update your own work entries.');
+        }
+
         $validated = $request->validate([
             'date' => 'required|date',
             'hours' => 'required|integer|min:0|max:24',
@@ -106,6 +128,12 @@ class WorkHourController extends Controller
 
     public function destroy(WorkHour $workHour)
     {
+        // Check if user can delete this work hour entry
+        $user = auth()->user();
+        if ($user->role === 'employee' && $workHour->user_id !== $user->id) {
+            return redirect()->route('work-hours.index')->with('error', 'You can only delete your own work entries.');
+        }
+
         $workHour->delete();
         return redirect()->route('work-hours.index')->with('success', 'Work hour entry deleted.');
     }

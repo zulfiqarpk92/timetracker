@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -9,9 +9,9 @@ import { timeFormat } from '../helpers';
 function Toast({ message, onClose }) {
     if (!message) return null;
     return (
-        <div className="fixed top-5 right-5 z-50 bg-green-600 text-white px-4 py-2 rounded shadow-lg flex items-center">
-            <span>{message}</span>
-            <button onClick={onClose} className="ml-4 text-white font-bold">&times;</button>
+        <div className="fixed top-5 right-5 z-50 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg shadow-lg flex items-center border-l-4 border-yellow-400">
+            <span className="font-medium">{message}</span>
+            <button onClick={onClose} className="ml-4 text-white hover:text-yellow-200 font-bold text-lg">&times;</button>
         </div>
     );
 }
@@ -40,8 +40,24 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const [activeUser, setActiveUser] = useState(userId);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
-    const [showUserOptions, setShowUserOptions] = useState(false);
-    const [userSearch, setUserSearch] = useState('');
+    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+    const [userSearchTerm, setUserSearchTerm] = useState('');
+    const userDropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+                setUserDropdownOpen(false);
+                setUserSearchTerm('');
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     // Helper to format work type for display
     const formatWorkType = (workType) => {
@@ -108,15 +124,22 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
 
     const handleUserFilter = (id) => {
         setActiveUser(id);
-        setUserSearch('');
-        setShowUserOptions(false);
+        setUserDropdownOpen(false);
+        setUserSearchTerm('');
         handleFilter(activeFilter, activeWorkType, id);
     };
 
-    // Filter users based on search
+    // Filter users based on search term
     const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(userSearch.toLowerCase())
+        user.name.toLowerCase().includes(userSearchTerm.toLowerCase())
     );
+
+    // Get currently selected user name
+    const getSelectedUserName = () => {
+        if (activeUser === 'all') return 'All Users';
+        const user = users.find(u => u.id == activeUser);
+        return user ? user.name : 'Select User';
+    };
 
     const handleFilter = (filter, workTypeFilter = activeWorkType, userFilter = activeUser) => {
         setActiveFilter(filter);
@@ -150,162 +173,207 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
             <Head title="Work Hours" />
             <Toast message={toast} onClose={closeToast} />
             {deleteId && (
-                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-40">
-                    <div className="bg-white rounded shadow-lg p-6 w-full max-w-sm">
-                        <h2 className="text-lg font-bold mb-4">Confirm Delete</h2>
-                        <p className="mb-4">Are you sure you want to delete this entry?</p>
-                        <div className="flex justify-end gap-2">
-                            <button onClick={() => setDeleteId(null)} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                            <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md border-t-4 border-yellow-400">
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Confirm Delete</h2>
+                        <p className="mb-6 text-gray-600">Are you sure you want to delete this entry?</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setDeleteId(null)} className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">Cancel</button>
+                            <button onClick={confirmDelete} className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-medium transition-all">Delete</button>
                         </div>
                     </div>
                 </div>
             )}
-            <div className="py-12">
+            <div className="py-12 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
-                            <div className="flex justify-between items-center">
-                                <h1 className="text-2xl font-bold mb-4">Work Hours Report</h1>
+                    <div className="bg-white overflow-hidden shadow-xl sm:rounded-xl border-t-4 border-gradient-to-r from-green-600 to-yellow-400">
+                        <div className="p-8 text-gray-900">
+                            <div className="flex justify-between items-center mb-8">
+                                <div>
+                                    <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">Work Hours Report</h1>
+                                    <p className="text-gray-600 mt-2">Comprehensive analysis of work hours and productivity</p>
+                                </div>
                                 <button
                                     onClick={exportToCSV}
-                                    className="px-3 py-1 bg-yellow-500 text-white rounded mb-4"
+                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
                                 >
+                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
                                     Export to CSV
                                 </button>
                             </div>
-                            <div className="mb-4 flex gap-2 flex-wrap">
-                                <div className="flex gap-2 mb-2">
-                                    <button onClick={() => handleFilter('all')} className={`px-3 py-1 rounded ${activeFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>All Dates</button>
-                                    <button onClick={() => handleFilter('today')} className={`px-3 py-1 rounded ${activeFilter === 'today' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Today</button>
-                                    <button onClick={() => handleFilter('week')} className={`px-3 py-1 rounded ${activeFilter === 'week' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>This Week</button>
-                                    <button onClick={() => handleFilter('month')} className={`px-3 py-1 rounded ${activeFilter === 'month' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>This Month</button>
-                                    <button onClick={() => handleFilter('custom')} className={`px-3 py-1 rounded ${activeFilter === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Custom Range</button>
-                                </div>
-                                {activeFilter === 'custom' && (
-                                    <div className="flex gap-2 items-center mb-2">
-                                        <span>From:</span>
-                                        <DatePicker
-                                            selected={customStartDate}
-                                            onChange={date => setCustomStartDate(date)}
-                                            dateFormat="yyyy-MM-dd"
-                                            maxDate={customEndDate || undefined}
-                                            className="px-2 py-1 border rounded"
-                                        />
-                                        <span>To:</span>
-                                        <DatePicker
-                                            selected={customEndDate}
-                                            onChange={date => setCustomEndDate(date)}
-                                            dateFormat="yyyy-MM-dd"
-                                            minDate={customStartDate || undefined}
-                                            className="px-2 py-1 border rounded"
-                                        />
-                                        <button
-                                            onClick={() => handleFilter('custom')}
-                                            className="px-3 py-1 bg-blue-600 text-white rounded"
-                                            disabled={!customStartDate || !customEndDate}
-                                        >Apply</button>
+                            <div className="mb-6 space-y-4">
+                                <div className="bg-gradient-to-r from-green-50 to-yellow-50 p-4 rounded-lg border border-green-200">
+                                    <h3 className="text-sm font-semibold text-green-800 mb-3">Filter by Date Range</h3>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>All Dates</button>
+                                        <button onClick={() => handleFilter('today')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'today' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Today</button>
+                                        <button onClick={() => handleFilter('week')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'week' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Week</button>
+                                        <button onClick={() => handleFilter('month')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'month' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Month</button>
+                                        <button onClick={() => handleFilter('custom')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'custom' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Custom Range</button>
                                     </div>
-                                )}
-                                <div className="flex gap-2 mb-2">
-                                    <button onClick={() => handleWorkTypeFilter('all')} className={`px-3 py-1 rounded ${activeWorkType === 'all' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>All Types</button>
-                                    <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-3 py-1 rounded ${activeWorkType === 'tracker' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Tracker</button>
-                                    <button onClick={() => handleWorkTypeFilter('manual')} className={`px-3 py-1 rounded ${activeWorkType === 'manual' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Manual Time</button>
-                                    <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-3 py-1 rounded ${activeWorkType === 'test_task' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Test Task</button>
-                                    <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-3 py-1 rounded ${activeWorkType === 'fixed' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Fixed Project</button>
-                                    <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-3 py-1 rounded ${activeWorkType === 'office_work' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Office Work</button>
-                                    <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-3 py-1 rounded ${activeWorkType === 'outside_of_upwork' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>Outside of Upwork</button>
+                                    {activeFilter === 'custom' && (
+                                        <div className="flex gap-3 items-center mt-4 p-3 bg-white rounded-lg border border-green-200">
+                                            <span className="text-green-700 font-medium">From:</span>
+                                            <DatePicker
+                                                selected={customStartDate}
+                                                onChange={date => setCustomStartDate(date)}
+                                                dateFormat="yyyy-MM-dd"
+                                                maxDate={customEndDate || undefined}
+                                                className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                            />
+                                            <span className="text-green-700 font-medium">To:</span>
+                                            <DatePicker
+                                                selected={customEndDate}
+                                                onChange={date => setCustomEndDate(date)}
+                                                dateFormat="yyyy-MM-dd"
+                                                minDate={customStartDate || undefined}
+                                                className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                            />
+                                            <button
+                                                onClick={() => handleFilter('custom')}
+                                                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
+                                                disabled={!customStartDate || !customEndDate}
+                                            >Apply</button>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex gap-2 mb-2">
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Search or select user..."
-                                            className="px-3 py-2 border rounded-md w-48 text-sm"
-                                            value={
-                                                userSearch ||
-                                                (activeUser === 'all' ? '' : users.find(u => u.id == activeUser)?.name || '')
-                                            }
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                setUserSearch(val);
-                                                if (val === '') {
-                                                    setActiveUser('all');
-                                                }
-                                                setShowUserOptions(true);
-                                            }}
-                                            onFocus={() => setShowUserOptions(true)}
-                                            onBlur={() => setTimeout(() => setShowUserOptions(false), 100)}
-                                        />
-                                        {showUserOptions && (
-                                            <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                                <div
-                                                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${activeUser === 'all' ? 'bg-blue-50 text-blue-600' : ''}`}
-                                                    onClick={() => handleUserFilter('all')}
-                                                >
-                                                    All Users
+                                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
+                                    <h3 className="text-sm font-semibold text-yellow-800 mb-3">Filter by Work Type</h3>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button onClick={() => handleWorkTypeFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'all' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>All Types</button>
+                                        <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'tracker' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Tracker</button>
+                                        <button onClick={() => handleWorkTypeFilter('manual')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'manual' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Manual Time</button>
+                                        <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'test_task' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Test Task</button>
+                                        <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'fixed' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Fixed Project</button>
+                                        <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'office_work' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Office Work</button>
+                                        <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'outside_of_upwork' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Outside of Upwork</button>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
+                                    <h3 className="text-sm font-semibold text-blue-800 mb-3">Filter by User</h3>
+                                    <div className="relative w-64" ref={userDropdownRef}>
+                                        <button
+                                            type="button"
+                                            className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-left flex items-center justify-between hover:bg-blue-50 transition-colors"
+                                            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                                        >
+                                            <span className="truncate">{getSelectedUserName()}</span>
+                                            <svg 
+                                                className={`w-4 h-4 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} 
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                        
+                                        {userDropdownOpen && (
+                                            <div className="absolute z-50 w-full mt-1 bg-white border border-blue-300 rounded-lg shadow-xl max-h-60 overflow-hidden">
+                                                <div className="p-2 border-b border-blue-200">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search users..."
+                                                        className="w-full px-3 py-2 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        value={userSearchTerm}
+                                                        onChange={(e) => setUserSearchTerm(e.target.value)}
+                                                        autoFocus
+                                                    />
                                                 </div>
-                                                {filteredUsers.map(user => (
+                                                <div className="max-h-48 overflow-y-auto">
                                                     <div
-                                                        key={user.id}
-                                                        className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${activeUser == user.id ? 'bg-blue-50 text-blue-600' : ''}`}
-                                                        onClick={() => handleUserFilter(user.id)}
+                                                        className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser === 'all' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+                                                        onClick={() => handleUserFilter('all')}
                                                     >
-                                                        {user.name}
+                                                        {activeUser === 'all' && (
+                                                            <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        )}
+                                                        All Users
                                                     </div>
-                                                ))}
-                                                {filteredUsers.length === 0 && userSearch && (
-                                                    <div className="px-3 py-2 text-gray-500 text-sm">No users found</div>
-                                                )}
+                                                    {filteredUsers.map(user => (
+                                                        <div
+                                                            key={user.id}
+                                                            className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser == user.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+                                                            onClick={() => handleUserFilter(user.id)}
+                                                        >
+                                                            {activeUser == user.id && (
+                                                                <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                            )}
+                                                            <span className="truncate">{user.name}</span>
+                                                        </div>
+                                                    ))}
+                                                    {filteredUsers.length === 0 && userSearchTerm && (
+                                                        <div className="px-4 py-2 text-gray-500 text-sm">No users found</div>
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead>
-                                    <tr>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Designation</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tracker</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {workHours.map(entry => (
-                                        <tr key={entry.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.user.name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.user.designation || '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatWorkType(entry.work_type)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">{entry.tracker}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project?.name || 'No Project'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.project?.client?.name || 'No Client'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{timeFormat(entry.hours)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <Link href={route('work-hours.edit', entry.id)} className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</Link>
-                                                <button onClick={() => handleDelete(entry.id)} className="text-red-600 hover:text-red-900">Delete</button>
-                                            </td>
+                            <div className="overflow-x-auto shadow-xl ring-1 ring-black ring-opacity-5 rounded-xl">
+                                <table className="min-w-full divide-y divide-gray-200 table-fixed">
+                                    <thead className="bg-gradient-to-r from-green-600 to-green-700">
+                                        <tr>
+                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">User</th>
+                                            <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Designation</th>
+                                            <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Work Type</th>
+                                            <th className="w-24 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Tracker</th>
+                                            <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Date</th>
+                                            <th className="w-36 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Project</th>
+                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
+                                            <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
+                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-green-600 to-green-700">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {workHours.map((entry, index) => (
+                                            <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-green-50 transition-colors`}>
+                                                <td className="px-6 py-4 text-sm text-gray-900 truncate font-medium">{entry.user.name}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600 truncate">{entry.user.designation || '-'}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-900 truncate">
+                                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                                        {formatWorkType(entry.work_type)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-900 capitalize truncate font-medium">{entry.tracker}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{entry.date}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-900 truncate font-medium" title={entry.project?.name || 'No Project'}>{entry.project?.name || 'No Project'}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600 truncate" title={entry.project?.client?.name || 'No Client'}>{entry.project?.client?.name || 'No Client'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-700">{timeFormat(entry.hours)}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate" title={entry.description}>{entry.description}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white">
+                                                    <div className="flex space-x-2">
+                                                        <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xs font-medium rounded-md transition-all">
+                                                            Edit
+                                                        </Link>
+                                                        <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xs font-medium rounded-md transition-all">
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                <tfoot className="bg-gradient-to-r from-gray-50 to-green-50">
                                     <tr>
-                                        <td colSpan={7}></td>
-                                        <td className="px-6 py-4 font-bold text-right text-gray-900">
+                                        <td colSpan={7} className="px-6 py-4"></td>
+                                        <td className="px-6 py-4 font-bold text-right text-green-800 text-lg">
                                             Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                         </td>
-                                        <td colSpan={2}></td>
+                                        <td className="px-6 py-4"></td>
+                                        <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-gray-50 to-green-50"></td>
                                     </tr>
                                 </tfoot>
-                            </table>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -117,9 +117,17 @@ export default function Authenticated({ user, header, children }) {
                             Dashboard
                         </ResponsiveNavLink>
                         {user?.role === 'admin' && (
-                            <ResponsiveNavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
-                                Users
-                            </ResponsiveNavLink>
+                            <>
+                                <ResponsiveNavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
+                                    Users
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink href={route('clients.index')} active={['clients.index', 'clients.create', 'clients.edit'].some(r => route().current(r))}>
+                                    Clients
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink href={route('projects.index')} active={['projects.index', 'projects.create', 'projects.edit'].some(r => route().current(r))}>
+                                    Projects
+                                </ResponsiveNavLink>
+                            </>
                         )}
                         <ResponsiveNavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
                             Work Hours

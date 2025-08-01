@@ -39,14 +39,16 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::resource('users', UserController::class)->except(['show']);
+    // Admin only routes
+    Route::middleware(['role:admin'])->group(function () {
+        Route::resource('users', UserController::class)->except(['show']);
+        Route::get('/work-hours/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
+        Route::resource('projects', ProjectController::class);
+        Route::resource('clients', ClientController::class);
+    });
 
+    // Routes accessible to both admin and employee
     Route::resource('work-hours', \App\Http\Controllers\WorkHourController::class)->except(['show']);
-    Route::get('/work-hours/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
-
-    Route::resource('projects', ProjectController::class);
-
-    Route::resource('clients', ClientController::class);
 });
 
 require __DIR__.'/auth.php';
