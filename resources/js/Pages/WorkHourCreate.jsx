@@ -1,5 +1,4 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import AnimatedBackground from '../Components/AnimatedBackground';
 import { Head, useForm, Link, router } from '@inertiajs/react';
@@ -19,8 +18,6 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
     });
     const [showTrackerOptions, setShowTrackerOptions] = React.useState(false);
     const [showProjectOptions, setShowProjectOptions] = React.useState(false);
-    const [trackerDropdownPosition, setTrackerDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 });
-    const [projectDropdownPosition, setProjectDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 });
     const trackerRef = React.useRef(null);
     const projectRef = React.useRef(null);
 
@@ -38,58 +35,16 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
         { label: 'Outside of Upwork', value: 'outside_of_upwork' },
     ];
 
-    const updateTrackerDropdownPosition = () => {
-        if (trackerRef.current) {
-            const rect = trackerRef.current.getBoundingClientRect();
-            setTrackerDropdownPosition({
-                top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX,
-                width: rect.width
-            });
-        }
-    };
-
-    const updateProjectDropdownPosition = () => {
-        if (projectRef.current) {
-            const rect = projectRef.current.getBoundingClientRect();
-            setProjectDropdownPosition({
-                top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX,
-                width: rect.width
-            });
-        }
-    };
-
     const handleTrackerFocus = () => {
-        updateTrackerDropdownPosition();
         setShowTrackerOptions(true);
         setShowProjectOptions(false);
     };
 
     const handleProjectFocus = () => {
-        updateProjectDropdownPosition();
         setShowProjectOptions(true);
         setShowTrackerOptions(false);
     };
 
-    React.useEffect(() => {
-        const handleResize = () => {
-            if (showTrackerOptions) updateTrackerDropdownPosition();
-            if (showProjectOptions) updateProjectDropdownPosition();
-        };
-
-        const handleScroll = () => {
-            if (showTrackerOptions) updateTrackerDropdownPosition();
-            if (showProjectOptions) updateProjectDropdownPosition();
-        };
-
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('scroll', handleScroll);
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            window.removeEventListener('scroll', handleScroll);
-        };
-    }, [showTrackerOptions, showProjectOptions]);
 
     return (
         <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-slate-100 leading-tight">Add Work Entry</h2>}>
@@ -155,20 +110,14 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                                     if (val === '') {
                                                         createForm.setData('tracker', '');
                                                     }
-                                                    updateTrackerDropdownPosition();
                                                     setShowTrackerOptions(true);
                                                 }}
                                                 onFocus={handleTrackerFocus}
                                                 onBlur={() => setTimeout(() => setShowTrackerOptions(false), 150)}
                                             />
-                                            {showTrackerOptions && createPortal(
+                                            {showTrackerOptions && (
                                                 <div 
-                                                    className="fixed z-[9999] bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl"
-                                                    style={{
-                                                        top: `${trackerDropdownPosition.top}px`,
-                                                        left: `${trackerDropdownPosition.left}px`,
-                                                        width: `${trackerDropdownPosition.width}px`
-                                                    }}
+                                                    className="absolute z-[99999] bg-slate-800/95 backdrop-blur-xl border border-white/30 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl w-full"
                                                 >
                                                     {trackers.filter(tr =>
                                                         !createForm.data.trackerSearch || tr.toLowerCase().includes(createForm.data.trackerSearch.toLowerCase())
@@ -190,8 +139,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                                     ).length === 0 && (
                                                         <div className="px-4 py-2 text-white/60">No profiles found</div>
                                                     )}
-                                                </div>,
-                                                document.body
+                                                </div>
                                             )}
                                             {createForm.errors.tracker && (
                                                 <p className="text-red-400 text-sm mt-2">{createForm.errors.tracker}</p>
@@ -245,21 +193,15 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                                 if (val === '') {
                                                     createForm.setData('project_id', '');
                                                 }
-                                                updateProjectDropdownPosition();
                                                 setShowProjectOptions(true);
                                             }}
                                             onFocus={handleProjectFocus}
                                             onBlur={() => setTimeout(() => setShowProjectOptions(false), 150)}
                                             required
                                         />
-                                        {showProjectOptions && createPortal(
+                                        {showProjectOptions && (
                                             <div 
-                                                className="fixed z-[9999] bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl"
-                                                style={{
-                                                    top: `${projectDropdownPosition.top}px`,
-                                                    left: `${projectDropdownPosition.left}px`,
-                                                    width: `${projectDropdownPosition.width}px`
-                                                }}
+                                                className="absolute z-[99999] bg-slate-800/95 backdrop-blur-xl border border-white/30 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl w-full"
                                             >
                                                 {projects.filter(project => {
                                                     const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
@@ -283,8 +225,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                                 }).length === 0 && (
                                                     <div className="px-4 py-2 text-white/60">No projects found</div>
                                                 )}
-                                            </div>,
-                                            document.body
+                                            </div>
                                         )}
                                         {createForm.errors.project_id && (
                                             <p className="text-red-400 text-sm mt-2">{createForm.errors.project_id}</p>
@@ -324,7 +265,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                             min="0"
                                             max="59"
                                             placeholder="0"
-                                            value={createForm.data.minutes || ''}
+                                            value={createForm.data.minutes || '0'}
                                             onChange={e => {
                                                 let val = e.target.value;
                                                 let num = parseInt(val.replace(/[^0-9]/g, ''));
