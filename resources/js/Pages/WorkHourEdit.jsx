@@ -1,5 +1,7 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
+import AnimatedBackground from '../Components/AnimatedBackground';
 import { Head, useForm, Link } from '@inertiajs/react';
 
 export default function WorkHourEdit({ auth, workHour, trackers = [], projects = [] }) {
@@ -17,6 +19,10 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
     });
     const [showTrackerOptions, setShowTrackerOptions] = React.useState(false);
     const [showProjectOptions, setShowProjectOptions] = React.useState(false);
+    const [trackerDropdownPosition, setTrackerDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 });
+    const [projectDropdownPosition, setProjectDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 });
+    const trackerRef = React.useRef(null);
+    const projectRef = React.useRef(null);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -24,245 +30,388 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
         editForm.put(route('work-hours.update', { id: editForm.data.id, hours: totalHours }));
     };
 
-    // Custom styles for the glowing effect and dark background (logo color scheme)
-    const bgClass = "min-h-screen flex items-center justify-center bg-[#0a0f13] bg-[radial-gradient(circle_at_50%_0%,rgba(0,153,51,0.10)_0%,rgba(0,0,0,1)_100%)]";
-    const cardClass = "w-full max-w-2xl rounded-2xl shadow-2xl p-8 bg-[#181f23] border border-[#009933]/40";
-    const labelClass = "text-[#009933] font-semibold text-sm mb-1 flex items-center gap-1";
-    const inputClass = "w-full rounded-lg px-4 py-2 bg-[#10171b] border border-[#009933]/40 text-[#009933] focus:outline-none focus:ring-2 focus:ring-[#FFC300]/60 placeholder:text-[#FFC300]/60";
-    const selectClass = inputClass;
-    const errorClass = "text-red-500 text-xs mt-1";
-    const buttonClass = "flex-1 bg-[#FFC300] hover:bg-[#FFD700] transition text-[#006622] font-semibold py-3 rounded-lg shadow-lg text-lg flex items-center justify-center gap-2";
-    const resetClass = "flex-1 bg-[#222c2f] hover:bg-[#2a393c] transition text-[#009933] font-semibold py-3 rounded-lg shadow-lg text-lg flex items-center justify-center gap-2 border border-[#009933]/40";
+    const workTypes = [
+        { label: 'Tracker', value: 'tracker' },
+        { label: 'Manual Time', value: 'manual' },
+        { label: 'Test Task', value: 'test_task' },
+        { label: 'Fixed Project', value: 'fixed' },
+        { label: 'Office Work', value: 'office_work' },
+        { label: 'Outside of Upwork', value: 'outside_of_upwork' },
+    ];
 
-    // Tab style for work type (logo color scheme)
-    const tabClass = (active) => `flex-1 text-center py-3 rounded-lg font-semibold cursor-pointer transition border-2 ${active ? 'bg-[#FFC300] text-[#006622] border-[#009933] shadow-lg' : 'bg-[#10171b] text-[#009933] border-transparent hover:bg-[#009933]/10'}`;
+    const updateTrackerDropdownPosition = () => {
+        if (trackerRef.current) {
+            const rect = trackerRef.current.getBoundingClientRect();
+            setTrackerDropdownPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: rect.width
+            });
+        }
+    };
+
+    const updateProjectDropdownPosition = () => {
+        if (projectRef.current) {
+            const rect = projectRef.current.getBoundingClientRect();
+            setProjectDropdownPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: rect.width
+            });
+        }
+    };
+
+    const handleTrackerFocus = () => {
+        updateTrackerDropdownPosition();
+        setShowTrackerOptions(true);
+        setShowProjectOptions(false);
+    };
+
+    const handleProjectFocus = () => {
+        updateProjectDropdownPosition();
+        setShowProjectOptions(true);
+        setShowTrackerOptions(false);
+    };
+
+    React.useEffect(() => {
+        const handleResize = () => {
+            if (showTrackerOptions) updateTrackerDropdownPosition();
+            if (showProjectOptions) updateProjectDropdownPosition();
+        };
+
+        const handleScroll = () => {
+            if (showTrackerOptions) updateTrackerDropdownPosition();
+            if (showProjectOptions) updateProjectDropdownPosition();
+        };
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [showTrackerOptions, showProjectOptions]);
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-slate-100 leading-tight">Edit Work Entry</h2>}>
             <Head title="Edit Work Hour Entry" />
-            <div className={bgClass}>
-                <div className={cardClass}>
-                    <div className="flex flex-col items-center mb-6">
-                        <div className="text-5xl font-extrabold" style={{ color: '#FFC300', textShadow: '0 2px 8px #00993399' }}>Sparking<span style={{ color: '#009933' }}>Asia</span></div>
-                        <div className="text-xl font-semibold text-[#009933] mb-2 flex items-center gap-2"><span className="text-2xl">📝</span>Edit Work Hour Entry</div>
-                        <div className="text-[#FFC300] text-sm mb-2">Update your time entry details below</div>
-                    </div>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Work Type Tabs */}
-                        <div className="mb-2 bg-[#10171b] p-2 rounded-xl border border-teal-700/40">
-                            <div className="flex gap-2 mb-2">
-                                {[{ label: 'Tracker', value: 'tracker' }, { label: 'Manual Time', value: 'manual' }, { label: 'Test Task', value: 'test_task' }].map(tab => (
-                                    <div
-                                        key={tab.value}
-                                        className={tabClass(editForm.data.work_type === tab.value)}
-                                        onClick={() => editForm.setData('work_type', tab.value)}
-                                    >
-                                        {tab.label}
-                                    </div>
-                                ))}
+            
+            {/* Animated Background */}
+            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{background: '#282a2a'}}>
+                <AnimatedBackground />
+            </div>
+            
+            <div className="py-12 min-h-screen relative z-10">
+                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
+                    <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl overflow-hidden shadow-2xl rounded-2xl border border-white/10">
+                        <div className="p-8">
+                            <div className="mb-8">
+                                <h1 className="text-4xl font-bold text-white mb-2">
+                                    Edit Work Entry
+                                </h1>
+                                <p className="text-white/70 text-lg">Update your time entry details</p>
                             </div>
-                            <div className="flex gap-2">
-                                {[{ label: 'Fixed Project', value: 'fixed' }, { label: 'Office Work', value: 'office_work' }, { label: 'Outside of Upwork', value: 'outside_of_upwork' }].map(tab => (
-                                    <div
-                                        key={tab.value}
-                                        className={tabClass(editForm.data.work_type === tab.value)}
-                                        onClick={() => editForm.setData('work_type', tab.value)}
-                                    >
-                                        {tab.label}
+                            
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                {/* Work Type Selection */}
+                                <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-xl p-6 rounded-xl border border-white/20">
+                                    <label className="block text-sm font-semibold text-white mb-4">Work Type</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        {workTypes.map(type => (
+                                            <button
+                                                key={type.value}
+                                                type="button"
+                                                onClick={() => editForm.setData('work_type', type.value)}
+                                                className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                                                    editForm.data.work_type === type.value
+                                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                                        : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'
+                                                }`}
+                                            >
+                                                {type.label}
+                                            </button>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                        {editForm.errors.work_type && <div className={errorClass}>{editForm.errors.work_type}</div>}
+                                    {editForm.errors.work_type && (
+                                        <p className="text-red-400 text-sm mt-2">{editForm.errors.work_type}</p>
+                                    )}
+                                </div>
 
-                        {/* Grid for fields */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Profile Name (Tracker) ComboBox */}
-                            {!['office_work', 'outside_of_upwork'].includes(editForm.data.work_type) && (
-                                <div className="relative">
-                                    <div className={labelClass}>Profile Name<span className="text-teal-400">*</span></div>
-                                    <input
-                                        type="text"
-                                        placeholder="Search or select profile..."
-                                        className={inputClass}
-                                        value={editForm.data.trackerSearch || (editForm.data.tracker || '')}
-                                        onChange={e => {
-                                            const val = e.target.value;
-                                            editForm.setData('trackerSearch', val);
-                                            if (val === '') {
-                                                editForm.setData('tracker', '');
-                                            }
-                                            setShowTrackerOptions(true);
-                                        }}
-                                        onFocus={() => setShowTrackerOptions(true)}
-                                        onBlur={() => setTimeout(() => setShowTrackerOptions(false), 100)}
-                                    />
-                                    {showTrackerOptions && (
-                                        <div className="absolute z-10 w-full bg-[#10171b] border border-teal-700/40 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
-                                            {trackers.filter(tr =>
-                                                !editForm.data.trackerSearch || tr.toLowerCase().includes(editForm.data.trackerSearch.toLowerCase())
-                                            ).map(tr => (
-                                                <div
-                                                    key={tr}
-                                                    className="px-4 py-2 cursor-pointer hover:bg-teal-700/20 text-teal-100"
-                                                    onMouseDown={() => {
-                                                        editForm.setData('tracker', tr);
-                                                        editForm.setData('trackerSearch', tr);
-                                                        setShowTrackerOptions(false);
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Profile Name (Tracker) */}
+                                    {!['office_work', 'outside_of_upwork'].includes(editForm.data.work_type) && (
+                                        <div className="relative">
+                                            <label className="block text-sm font-semibold text-white/90 mb-3">
+                                                Profile Name <span className="text-red-400">*</span>
+                                            </label>
+                                            <input
+                                                ref={trackerRef}
+                                                type="text"
+                                                placeholder="Search or select profile..."
+                                                className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
+                                                value={editForm.data.trackerSearch || (editForm.data.tracker || '')}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    editForm.setData('trackerSearch', val);
+                                                    if (val === '') {
+                                                        editForm.setData('tracker', '');
+                                                    }
+                                                    updateTrackerDropdownPosition();
+                                                    setShowTrackerOptions(true);
+                                                }}
+                                                onFocus={handleTrackerFocus}
+                                                onBlur={() => setTimeout(() => setShowTrackerOptions(false), 150)}
+                                            />
+                                            {showTrackerOptions && createPortal(
+                                                <div 
+                                                    className="fixed z-[9999] bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl"
+                                                    style={{
+                                                        top: `${trackerDropdownPosition.top}px`,
+                                                        left: `${trackerDropdownPosition.left}px`,
+                                                        width: `${trackerDropdownPosition.width}px`
                                                     }}
                                                 >
-                                                    {tr}
-                                                </div>
-                                            ))}
-                                            {trackers.filter(tr =>
-                                                !editForm.data.trackerSearch || tr.toLowerCase().includes(editForm.data.trackerSearch.toLowerCase())
-                                            ).length === 0 && (
-                                                <div className="px-4 py-2 text-teal-400">No profiles found</div>
+                                                    {trackers.filter(tr =>
+                                                        !editForm.data.trackerSearch || tr.toLowerCase().includes(editForm.data.trackerSearch.toLowerCase())
+                                                    ).map(tr => (
+                                                        <div
+                                                            key={tr}
+                                                            className="px-4 py-2 cursor-pointer hover:bg-white/20 text-white transition-colors"
+                                                            onMouseDown={() => {
+                                                                editForm.setData('tracker', tr);
+                                                                editForm.setData('trackerSearch', tr);
+                                                                setShowTrackerOptions(false);
+                                                            }}
+                                                        >
+                                                            {tr}
+                                                        </div>
+                                                    ))}
+                                                    {trackers.filter(tr =>
+                                                        !editForm.data.trackerSearch || tr.toLowerCase().includes(editForm.data.trackerSearch.toLowerCase())
+                                                    ).length === 0 && (
+                                                        <div className="px-4 py-2 text-white/60">No profiles found</div>
+                                                    )}
+                                                </div>,
+                                                document.body
+                                            )}
+                                            {editForm.errors.tracker && (
+                                                <p className="text-red-400 text-sm mt-2">{editForm.errors.tracker}</p>
                                             )}
                                         </div>
                                     )}
-                                    {editForm.errors.tracker && <div className={errorClass}>{editForm.errors.tracker}</div>}
-                                </div>
-                            )}
-                            {/* Tracking Date */}
-                            <div>
-                                <div className={labelClass}>Tracking Date<span className="text-teal-400">*</span></div>
-                                <input type="date" value={editForm.data.date} onChange={e => editForm.setData('date', e.target.value)} className={inputClass} required />
-                                {editForm.errors.date && <div className={errorClass}>{editForm.errors.date}</div>}
-                            </div>
-                            {/* Project Name ComboBox */}
-                            <div className="relative">
-                                <div className={labelClass}>Project Name<span className="text-teal-400">*</span></div>
-                                <input
-                                    type="text"
-                                    placeholder="Search or select project..."
-                                    className={inputClass}
-                                    value={
-                                        editForm.data.projectSearch ||
-                                        (editForm.data.project_id
-                                            ? ((() => {
-                                                const project = projects.find(p => p.id == editForm.data.project_id);
-                                                if (!project) return '';
-                                                const clientName = project.client?.name || 'No Client';
-                                                const projectName = project.name || '';
-                                                return `${clientName}${projectName ? ' -- ' + projectName : ''}`;
-                                            })())
-                                            : ''
-                                        )
-                                    }
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        editForm.setData('projectSearch', val);
-                                        if (val === '') {
-                                            editForm.setData('project_id', '');
-                                        }
-                                        setShowProjectOptions(true);
-                                    }}
-                                    onFocus={() => setShowProjectOptions(true)}
-                                    onBlur={() => setTimeout(() => setShowProjectOptions(false), 100)}
-                                />
-                                {showProjectOptions && (
-                                    <div className="absolute z-10 w-full bg-[#10171b] border border-teal-700/40 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
-                                        {projects.filter(project => {
-                                            const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
-                                            return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
-                                        }).map(project => (
-                                            <div
-                                                key={project.id}
-                                                className="px-4 py-2 cursor-pointer hover:bg-teal-700/20 text-teal-100"
-                                                onMouseDown={() => {
-                                                    editForm.setData('project_id', project.id);
-                                                    editForm.setData('projectSearch', `${project.client?.name ?? 'No Client'} -- ${project.name}`);
-                                                    setShowProjectOptions(false);
-                                                }}
-                                            >
-                                                {project.client?.name ?? 'No Client'} -- {project.name}
-                                            </div>
-                                        ))}
-                                        {projects.filter(project => {
-                                            const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
-                                            return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
-                                        }).length === 0 && (
-                                            <div className="px-4 py-2 text-teal-400">No projects found</div>
+
+                                    {/* Tracking Date */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-white/90 mb-3">
+                                            Tracking Date <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={editForm.data.date}
+                                            onChange={e => editForm.setData('date', e.target.value)}
+                                            className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white"
+                                            required
+                                        />
+                                        {editForm.errors.date && (
+                                            <p className="text-red-400 text-sm mt-2">{editForm.errors.date}</p>
                                         )}
                                     </div>
-                                )}
-                                {editForm.errors.project && <div className={errorClass}>{editForm.errors.project}</div>}
-                            </div>
-                            {/* Hours & Minutes (side by side) */}
-                            <div className="col-span-1 md:col-span-2 flex gap-4">
-                                <div className="w-1/2">
-                                    <div className={labelClass}>Hours<span className="text-teal-400">*</span></div>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="24"
-                                        placeholder="HH"
-                                        value={editForm.data.hours || ''}
-                                        onChange={e => {
-                                            let val = e.target.value;
-                                            if (val.length > 2) val = val.slice(0, 2);
-                                            // Clamp value to 0-24
-                                            let num = parseInt(val.replace(/[^0-9]/g, ''));
-                                            if (isNaN(num)) num = '';
-                                            else if (num > 24) num = 24;
-                                            else if (num < 0) num = 0;
-                                            editForm.setData('hours', num === '' ? '' : num.toString());
-                                        }}
-                                        className={inputClass}
+
+                                    {/* Project Name */}
+                                    <div className="relative md:col-span-2">
+                                        <label className="block text-sm font-semibold text-white/90 mb-3">
+                                            Project Name <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            ref={projectRef}
+                                            type="text"
+                                            placeholder="Search or select project..."
+                                            className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
+                                            value={
+                                                editForm.data.projectSearch ||
+                                                (editForm.data.project_id
+                                                    ? ((() => {
+                                                        const project = projects.find(p => p.id == editForm.data.project_id);
+                                                        if (!project) return '';
+                                                        const clientName = project.client?.name || 'No Client';
+                                                        const projectName = project.name || '';
+                                                        return `${clientName}${projectName ? ' -- ' + projectName : ''}`;
+                                                    })())
+                                                    : ''
+                                                )
+                                            }
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                editForm.setData('projectSearch', val);
+                                                if (val === '') {
+                                                    editForm.setData('project_id', '');
+                                                }
+                                                updateProjectDropdownPosition();
+                                                setShowProjectOptions(true);
+                                            }}
+                                            onFocus={handleProjectFocus}
+                                            onBlur={() => setTimeout(() => setShowProjectOptions(false), 150)}
+                                            required
+                                        />
+                                        {showProjectOptions && createPortal(
+                                            <div 
+                                                className="fixed z-[9999] bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl"
+                                                style={{
+                                                    top: `${projectDropdownPosition.top}px`,
+                                                    left: `${projectDropdownPosition.left}px`,
+                                                    width: `${projectDropdownPosition.width}px`
+                                                }}
+                                            >
+                                                {projects.filter(project => {
+                                                    const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
+                                                    return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
+                                                }).map(project => (
+                                                    <div
+                                                        key={project.id}
+                                                        className="px-4 py-2 cursor-pointer hover:bg-white/20 text-white transition-colors"
+                                                        onMouseDown={() => {
+                                                            editForm.setData('project_id', project.id);
+                                                            editForm.setData('projectSearch', `${project.client?.name ?? 'No Client'} -- ${project.name}`);
+                                                            setShowProjectOptions(false);
+                                                        }}
+                                                    >
+                                                        {project.client?.name ?? 'No Client'} -- {project.name}
+                                                    </div>
+                                                ))}
+                                                {projects.filter(project => {
+                                                    const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
+                                                    return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
+                                                }).length === 0 && (
+                                                    <div className="px-4 py-2 text-white/60">No projects found</div>
+                                                )}
+                                            </div>,
+                                            document.body
+                                        )}
+                                        {editForm.errors.project && (
+                                            <p className="text-red-400 text-sm mt-2">{editForm.errors.project}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Hours and Minutes */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-white/90 mb-3">
+                                            Hours <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="24"
+                                            placeholder="0"
+                                            value={editForm.data.hours || ''}
+                                            onChange={e => {
+                                                let val = e.target.value;
+                                                let num = parseInt(val.replace(/[^0-9]/g, ''));
+                                                if (isNaN(num)) num = '';
+                                                else if (num > 24) num = 24;
+                                                else if (num < 0) num = 0;
+                                                editForm.setData('hours', num === '' ? '' : num.toString());
+                                            }}
+                                            className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-white/90 mb-3">
+                                            Minutes <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="59"
+                                            placeholder="0"
+                                            value={editForm.data.minutes || ''}
+                                            onChange={e => {
+                                                let val = e.target.value;
+                                                let num = parseInt(val.replace(/[^0-9]/g, ''));
+                                                if (isNaN(num)) num = '';
+                                                else if (num > 59) num = 59;
+                                                else if (num < 0) num = 0;
+                                                editForm.setData('minutes', num === '' ? '' : num.toString());
+                                            }}
+                                            className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Total Time Display */}
+                                    <div className="md:col-span-2 p-6 bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-xl rounded-xl border border-white/20">
+                                        <div className="flex items-center gap-2 text-lg font-semibold text-white">
+                                            <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Total Time: {
+                                                (() => {
+                                                    const h = parseInt(editForm.data.hours || 0, 10);
+                                                    const m = parseInt(editForm.data.minutes || 0, 10);
+                                                    const pad = n => n.toString().padStart(2, '0');
+                                                    if (isNaN(h) && isNaN(m)) return '00:00';
+                                                    if (isNaN(h)) return `00:${pad(m)}`;
+                                                    if (isNaN(m)) return `${pad(h)}:00`;
+                                                    return `${pad(h)}:${pad(m)}`;
+                                                })()
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-white/90 mb-3">
+                                        Description <span className="text-red-400">*</span>
+                                    </label>
+                                    <textarea
+                                        placeholder="Add any notes about this time entry..."
+                                        value={editForm.data.description}
+                                        onChange={e => editForm.setData('description', e.target.value)}
+                                        className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all min-h-[120px] text-white placeholder-white/50"
                                         required
                                     />
+                                    {editForm.errors.description && (
+                                        <p className="text-red-400 text-sm mt-2">{editForm.errors.description}</p>
+                                    )}
                                 </div>
-                                <div className="w-1/2">
-                                    <div className={labelClass}>Minutes<span className="text-teal-400">*</span></div>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="59"
-                                        placeholder="MM"
-                                        value={editForm.data.minutes || ''}
-                                        onChange={e => {
-                                            let val = e.target.value;
-                                            if (val.length > 2) val = val.slice(0, 2);
-                                            // Clamp value to 0-59
-                                            let num = parseInt(val.replace(/[^0-9]/g, ''));
-                                            if (isNaN(num)) num = '';
-                                            else if (num > 59) num = 59;
-                                            else if (num < 0) num = 0;
-                                            editForm.setData('minutes', num === '' ? '' : num.toString());
-                                        }}
-                                        className={inputClass}
-                                        required
-                                    />
+
+                                {/* Submit Buttons */}
+                                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                                    <button
+                                        type="submit"
+                                        disabled={editForm.processing}
+                                        className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl disabled:opacity-50 backdrop-blur-xl"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        {editForm.processing ? 'Updating...' : 'Update Entry'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => editForm.reset()}
+                                        className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all border border-white/20 backdrop-blur-xl"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Reset Changes
+                                    </button>
+                                    <Link
+                                        href={route('work-hours.index')}
+                                        className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                        </svg>
+                                        Back to List
+                                    </Link>
                                 </div>
-                            </div>
-                            {/* Total Time */}
-                            <div className="col-span-1 md:col-span-2 flex items-center gap-2 text-[#009933] font-semibold text-lg">
-                                <span className="text-[#FFC300]">🕒</span> Total Time: {
-                                    (() => {
-                                        const h = parseInt(editForm.data.hours || 0, 10);
-                                        const m = parseInt(editForm.data.minutes || 0, 10);
-                                        const pad = n => n.toString().padStart(2, '0');
-                                        if (isNaN(h) && isNaN(m)) return '00:00';
-                                        if (isNaN(h)) return `00:${pad(m)}`;
-                                        if (isNaN(m)) return `${pad(h)}:00`;
-                                        return `${pad(h)}:${pad(m)}`;
-                                    })()
-                                }
-                            </div>
+                            </form>
                         </div>
-                        {/* Memo */}
-                        <div>
-                            <div className={labelClass}>Memo<span className="text-teal-400">*</span></div>
-                            <textarea placeholder="Add any notes about this time entry..." value={editForm.data.description} onChange={e => editForm.setData('description', e.target.value)} className={inputClass + ' min-h-[70px]'} required />
-                            {editForm.errors.description && <div className={errorClass}>{editForm.errors.description}</div>}
-                        </div>
-                        {/* Buttons */}
-                        <div className="flex gap-4 mt-4">
-                            <button type="submit" className={buttonClass}><span>💾</span> Save Changes</button>
-                            <Link href={route('work-hours.index')} className={resetClass}><span>↩</span> Cancel</Link>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </AuthenticatedLayout>

@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
+import AnimatedBackground from '../Components/AnimatedBackground';
 import { Head, Link, router } from '@inertiajs/react';
 import { timeFormat } from '../helpers';
 
@@ -10,17 +11,13 @@ function Toast({ message, type = 'success', onClose }) {
     if (!message) return null;
     
     const bgClass = type === 'error' 
-        ? 'bg-gradient-to-r from-red-600 to-red-700' 
-        : 'bg-gradient-to-r from-green-600 to-green-700';
-    
-    const borderClass = type === 'error' 
-        ? 'border-red-400' 
-        : 'border-yellow-400';
+        ? 'bg-gradient-to-r from-red-500/90 to-red-600/90' 
+        : 'bg-gradient-to-r from-green-500/90 to-blue-500/90';
 
     return (
-        <div className={`fixed top-5 right-5 z-50 ${bgClass} text-white px-6 py-3 rounded-lg shadow-lg flex items-center border-l-4 ${borderClass}`}>
+        <div className={`fixed top-5 right-5 z-50 ${bgClass} backdrop-blur-xl text-white px-6 py-3 rounded-xl shadow-2xl flex items-center border border-white/20`}>
             <span className="font-medium">{message}</span>
-            <button onClick={onClose} className="ml-4 text-white hover:text-yellow-200 font-bold text-lg">&times;</button>
+            <button onClick={onClose} className="ml-4 text-white hover:text-gray-300 font-bold text-lg">&times;</button>
         </div>
     );
 }
@@ -106,6 +103,15 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
         return trackers.sort();
     };
 
+    // Helper to get user context for display - now everyone sees their own work diary
+    const getUserRoleContext = () => {
+        return {
+            title: 'My Work Hours',
+            description: 'View and manage your personal work diary',
+            showUserColumn: false // No one needs to see user column since it's always their own data
+        };
+    };
+
     const getUniqueProjects = () => {
         const projects = [...new Set(workHours.map(entry => entry.project?.name).filter(Boolean))];
         return projects.sort();
@@ -141,8 +147,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
         }));
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'WorkHours');
-        XLSX.writeFile(workbook, 'work_hours_list.csv', { bookType: 'csv' });
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'MyWorkHours');
+        XLSX.writeFile(workbook, 'my_work_hours.csv', { bookType: 'csv' });
     };
 
     useEffect(() => {
@@ -242,34 +248,42 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
     };
 
     return (
-        <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Work Hours</h2>}>
+        <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-slate-100 leading-tight">Work Hours</h2>}>
             <Head title="Work Hours" />
+            
+            {/* Animated Background */}
+            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{background: '#282a2a'}}>
+                <AnimatedBackground />
+            </div>
+            
             <Toast message={toast} type={toastType} onClose={closeToast} />
             {deleteId && (
-                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md border-t-4 border-yellow-400">
-                        <h2 className="text-xl font-bold mb-4 text-gray-800">Confirm Delete</h2>
-                        <p className="mb-6 text-gray-600">Are you sure you want to delete this entry?</p>
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20">
+                        <h2 className="text-xl font-bold mb-4 text-white">Confirm Delete</h2>
+                        <p className="mb-6 text-white/70">Are you sure you want to delete this entry?</p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setDeleteId(null)} className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">Cancel</button>
-                            <button onClick={confirmDelete} className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-medium transition-all">Delete</button>
+                            <button onClick={() => setDeleteId(null)} className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all backdrop-blur-xl border border-white/20">Cancel</button>
+                            <button onClick={confirmDelete} className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-medium transition-all">Delete</button>
                         </div>
                     </div>
                 </div>
             )}
-            <div className="py-12 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+            <div className="py-12 min-h-screen relative z-10">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     {/* Header Section */}
                     <div className="mb-6">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">Work Hours</h1>
-                                <p className="text-gray-600 mt-2 text-lg">Manage and track your work hours efficiently</p>
+                                <h1 className="text-4xl font-bold text-white mb-2">
+                                    {getUserRoleContext().title}
+                                </h1>
+                                <p className="text-white/70 text-lg">{getUserRoleContext().description}</p>
                             </div>
                             <div className="flex gap-3 items-center">
                                 <button
                                     onClick={() => setShowFilters(!showFilters)}
-                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
+                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl border border-white/20 backdrop-blur-xl"
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
@@ -277,7 +291,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                     {showFilters ? 'Hide Filters' : 'Show Filters'}
                                 </button>
                                 <Link 
-                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl" 
+                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl" 
                                     href={route('work-hours.create')}
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,7 +301,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                 </Link>
                                 <button
                                     onClick={exportToCSV}
-                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
+                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -301,13 +315,13 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                     {/* Filters Section - Outside main content */}
                     {showFilters && (
                         <div className="mb-6">
-                            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-xl font-semibold text-gray-800">Filters</h2>
+                                    <h2 className="text-xl font-semibold text-white">Filters</h2>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setSidebarLayout(!sidebarLayout)}
-                                            className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg text-sm"
+                                            className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500/30 to-purple-500/30 hover:from-blue-500/40 hover:to-purple-500/40 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg text-sm backdrop-blur-xl border border-white/20"
                                             title={sidebarLayout ? 'Switch to grid layout' : 'Switch to sidebar layout'}
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +350,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                 });
                                                 router.get(route('work-hours.index'));
                                             }}
-                                            className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg text-sm"
+                                            className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg text-sm backdrop-blur-xl border border-white/20"
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -635,15 +649,15 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                         </div>
                     )}
 
-                    {/* Main Content Area - Separate white container */}
-                    <div className="bg-white overflow-hidden shadow-xl sm:rounded-xl border border-gray-200">
-                        <div className="p-8 text-gray-900">
-                            <div className="overflow-x-auto shadow-xl ring-1 ring-black ring-opacity-5 rounded-xl">
-                                        <table className="min-w-full divide-y divide-gray-200 table-fixed">
-                                            <thead className="bg-gradient-to-r from-green-600 to-green-700">
+                    {/* Main Content Area - Separate container */}
+                    <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl overflow-hidden shadow-2xl rounded-2xl border border-white/10">
+                        <div className="p-8 text-white">
+                            <div className="overflow-x-auto bg-white/5 backdrop-blur-xl rounded-xl border border-white/10">
+                                        <table className="min-w-full divide-y divide-white/10 table-fixed">
+                                            <thead className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 backdrop-blur-xl">
                                                 <tr>
                                                     <th className="w-16 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">ID</th>
-                                                    {auth.user?.role === 'admin' && (
+                                                    {getUserRoleContext().showUserColumn && (
                                                         <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">User</th>
                                                     )}
                                                     <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Work Type</th>
@@ -653,22 +667,22 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                     <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
                                                     <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
                                                     <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
-                                                    <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-green-600 to-green-700">Actions</th>
+                                                    <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 backdrop-blur-xl">Actions</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
+                                            <tbody className="divide-y divide-white/5">
                                                 {workHours.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={auth.user?.role === 'admin' ? 10 : 9} className="px-6 py-12 text-center">
+                                                        <td colSpan={9} className="px-6 py-12 text-center">
                                                             <div className="flex flex-col items-center">
-                                                                <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <svg className="w-12 h-12 text-white/40 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                                 </svg>
-                                                                <h3 className="text-lg font-medium text-gray-900 mb-2">No work hours found</h3>
-                                                                <p className="text-gray-500 mb-4">No work hours match your current filter criteria.</p>
+                                                                <h3 className="text-lg font-medium text-white mb-2">No work hours found</h3>
+                                                                <p className="text-white/60 mb-4">No work hours match your current filter criteria.</p>
                                                                 <Link 
                                                                     href={route('work-hours.create')}
-                                                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all"
+                                                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all"
                                                                 >
                                                                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -680,55 +694,48 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                     </tr>
                                                 ) : (
                                                 workHours.map((entry, index) => (
-                                                    <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-green-50 transition-colors`}>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-800">{entry.id}</td>
-                                                        {auth.user?.role === 'admin' && (
-                                                            <td className="px-6 py-4 text-sm text-gray-900 truncate font-medium" title={entry.user?.name}>
-                                                                <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                                    <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white/5' : 'bg-white/10'} hover:bg-white/20 transition-all duration-200`}>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-400">{entry.id}</td>
+                                                        {getUserRoleContext().showUserColumn && (
+                                                            <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.user?.name}>
+                                                                <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-500/30 text-blue-200 rounded-full backdrop-blur-xl border border-blue-400/30">
                                                                     {entry.user?.name}
                                                                 </span>
                                                             </td>
                                                         )}
-                                                        <td className="px-6 py-4 text-sm text-gray-900 truncate">
-                                                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                                        <td className="px-6 py-4 text-sm text-white truncate">
+                                                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-purple-500/30 text-purple-200 rounded-full backdrop-blur-xl border border-purple-400/30">
                                                                 {formatWorkType(entry.work_type)}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-sm text-gray-900 capitalize truncate font-medium">{entry.tracker}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{entry.date}</td>
-                                                        <td className="px-6 py-4 text-sm text-gray-900 truncate font-medium" title={entry.project?.name}>{entry.project?.name}</td>
-                                                        <td className="px-6 py-4 text-sm text-gray-600 truncate" title={entry.project?.client?.name}>{entry.project?.client?.name}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-700">{timeFormat(entry.hours)}</td>
-                                                        <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate" title={entry.description}>{entry.description}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 sticky right-0 bg-white">
+                                                        <td className="px-6 py-4 text-sm text-white capitalize truncate font-medium">{entry.tracker}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">{entry.date}</td>
+                                                        <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.project?.name}>{entry.project?.name}</td>
+                                                        <td className="px-6 py-4 text-sm text-white/70 truncate" title={entry.project?.client?.name}>{entry.project?.client?.name}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-400">{timeFormat(entry.hours)}</td>
+                                                        <td className="px-6 py-4 text-sm text-white/80 max-w-xs truncate" title={entry.description}>{entry.description}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white sticky right-0 bg-white/10 backdrop-blur-xl">
                                                             <div className="flex space-x-2">
-                                                                {(auth.user?.role === 'admin' || entry.user_id === auth.user?.id) && (
-                                                                    <>
-                                                                        <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xs font-medium rounded-md transition-all">
-                                                                            Edit
-                                                                        </Link>
-                                                                        <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xs font-medium rounded-md transition-all">
-                                                                            Delete
-                                                                        </button>
-                                                                    </>
-                                                                )}
-                                                                {auth.user?.role === 'employee' && entry.user_id !== auth.user?.id && (
-                                                                    <span className="text-xs text-gray-500 italic">View Only</span>
-                                                                )}
+                                                                <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-medium rounded-md transition-all">
+                                                                    Edit
+                                                                </Link>
+                                                                <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-medium rounded-md transition-all">
+                                                                    Delete
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
                                                 )))}
                                             </tbody>
                                             {workHours.length > 0 && (
-                                            <tfoot className="bg-gradient-to-r from-gray-50 to-green-50">
+                                            <tfoot className="bg-gradient-to-r from-white/5 to-green-500/20 backdrop-blur-xl">
                                                 <tr>
-                                                    <td colSpan={auth.user?.role === 'admin' ? 7 : 6} className="px-6 py-4"></td>
-                                                    <td className="px-6 py-4 font-bold text-right text-green-800 text-lg">
+                                                    <td colSpan={6} className="px-6 py-4"></td>
+                                                    <td className="px-6 py-4 font-bold text-right text-green-400 text-lg">
                                                         Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                                     </td>
                                                     <td className="px-6 py-4"></td>
-                                                    <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-gray-50 to-green-50"></td>
+                                                    <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-white/5 to-green-500/20 backdrop-blur-xl"></td>
                                                 </tr>
                                             </tfoot>
                                             )}

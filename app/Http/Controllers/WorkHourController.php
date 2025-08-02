@@ -23,10 +23,8 @@ class WorkHourController extends Controller
         $user = auth()->user();
         $query = WorkHour::with('user', 'project', 'project.client');
         
-        // If user is employee, only show their own work hours
-        if ($user->role === 'employee') {
-            $query->where('user_id', $user->id);
-        }
+        // All users (admin and employee) should only see their own work hours
+        $query->where('user_id', $user->id);
         
         $filter = $request->input('filter', 'all');
         $startDate = $request->input('startDate');

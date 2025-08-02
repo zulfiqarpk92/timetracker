@@ -1,115 +1,377 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 
-export default function Dashboard({ auth }) {
+// Animated Spider Web Background Component
+const AnimatedBackground = () => {
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const [particles, setParticles] = useState([]);
+
+    useEffect(() => {
+        // Initialize web nodes (particles)
+        const initialParticles = Array.from({ length: 80 }, (_, i) => ({
+            id: i,
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            size: Math.random() * 3 + 2,
+            speedX: (Math.random() - 0.5) * 0.3,
+            speedY: (Math.random() - 0.5) * 0.3,
+            opacity: Math.random() * 0.6 + 0.2,
+        }));
+        setParticles(initialParticles);
+    }, []);
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            setMousePosition({ x: e.clientX, y: e.clientY });
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+    useEffect(() => {
+        const animateParticles = () => {
+            setParticles(prevParticles =>
+                prevParticles.map(particle => {
+                    let newX = particle.x + particle.speedX;
+                    let newY = particle.y + particle.speedY;
+
+                    // Mouse interaction - stronger attraction for web effect
+                    const dx = mousePosition.x - newX;
+                    const dy = mousePosition.y - newY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 150) {
+                        newX += dx * 0.003;
+                        newY += dy * 0.003;
+                    }
+
+                    // Bounce off edges
+                    if (newX <= 0 || newX >= window.innerWidth) particle.speedX *= -1;
+                    if (newY <= 0 || newY >= window.innerHeight) particle.speedY *= -1;
+
+                    return {
+                        ...particle,
+                        x: newX,
+                        y: newY,
+                    };
+                })
+            );
+        };
+
+        const interval = setInterval(animateParticles, 16);
+        return () => clearInterval(interval);
+    }, [mousePosition]);
+
+    return (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ backgroundColor: '#282a2a' }}>
+            {/* Web nodes (particles) */}
+            <div className="absolute inset-0">
+                {particles.map(particle => (
+                    <div
+                        key={particle.id}
+                        className="absolute rounded-full"
+                        style={{
+                            left: `${particle.x}px`,
+                            top: `${particle.y}px`,
+                            width: `${particle.size}px`,
+                            height: `${particle.size}px`,
+                            backgroundColor: '#ffffff',
+                            opacity: particle.opacity * 0.8,
+                            transform: `translate(-50%, -50%)`,
+                            transition: 'all 0.1s ease-out',
+                            boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
+                        }}
+                    />
+                ))}
+            </div>
+
+            {/* Spider web lines */}
+            <svg className="absolute inset-0 w-full h-full">
+                {particles.map((particle, index) => {
+                    return particles.slice(index + 1).map((otherParticle, otherIndex) => {
+                        const distance = Math.sqrt(
+                            Math.pow(particle.x - otherParticle.x, 2) + 
+                            Math.pow(particle.y - otherParticle.y, 2)
+                        );
+                        
+                        if (distance < 120) {
+                            const opacity = Math.max(0.1, 1 - (distance / 120));
+                            return (
+                                <line
+                                    key={`web-${index}-${otherIndex}`}
+                                    x1={particle.x}
+                                    y1={particle.y}
+                                    x2={otherParticle.x}
+                                    y2={otherParticle.y}
+                                    stroke="rgba(255, 255, 255, 0.3)"
+                                    strokeWidth="1"
+                                    opacity={opacity * 0.5}
+                                />
+                            );
+                        }
+                        return null;
+                    });
+                })}
+                
+                {/* Additional radial web lines from mouse */}
+                {particles.slice(0, 15).map((particle, index) => {
+                    const distance = Math.sqrt(
+                        Math.pow(particle.x - mousePosition.x, 2) + 
+                        Math.pow(particle.y - mousePosition.y, 2)
+                    );
+                    
+                    if (distance < 200 && mousePosition.x > 0 && mousePosition.y > 0) {
+                        const opacity = Math.max(0.1, 1 - (distance / 200));
+                        return (
+                            <line
+                                key={`mouse-web-${index}`}
+                                x1={mousePosition.x}
+                                y1={mousePosition.y}
+                                x2={particle.x}
+                                y2={particle.y}
+                                stroke="rgba(16, 185, 129, 0.4)"
+                                strokeWidth="1.5"
+                                opacity={opacity * 0.6}
+                            />
+                        );
+                    }
+                    return null;
+                })}
+            </svg>
+
+            {/* Mouse cursor web center */}
+            <div
+                className="absolute w-20 h-20 rounded-full border-2 border-white/20 pointer-events-none"
+                style={{
+                    left: mousePosition.x - 40,
+                    top: mousePosition.y - 40,
+                    transition: 'all 0.1s ease-out',
+                    background: 'radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%)',
+                }}
+            />
+        </div>
+    );
+};
+
+export default function Dashboard({ auth, stats }) {
     return (
         <AuthenticatedLayout
             user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Dashboard</h2>}
+            header="Dashboard"
         >
             <Head title="Dashboard" />
 
-            <div className="py-12 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden shadow-xl sm:rounded-xl border-t-4 border-gradient-to-r from-green-600 to-yellow-400">
-                        <div className="p-8 text-gray-900">
-                            <div className="mb-8">
-                                <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent mb-2">
-                                    Welcome to Sparking Asia Time Tracker
-                                </h1>
-                                <p className="text-gray-600 text-lg">
-                                    Track your work hours efficiently and manage your productivity with our comprehensive time tracking solution.
-                                </p>
+            <div className="relative min-h-screen overflow-hidden">
+                <AnimatedBackground />
+                
+                {/* Main Content */}
+                <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-8">
+                    {/* Hero Section */}
+                    <div className="max-w-7xl mx-auto mb-12">
+                        <div className="text-center mb-16">
+                            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-md border border-white/20 mb-6">
+                                <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                                <span className="text-white/80 text-sm font-medium">Welcome back, {auth.user?.name}</span>
+                            </div>
+                            
+                            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                                <span className="bg-gradient-to-r from-white via-green-200 to-blue-200 bg-clip-text text-transparent">
+                                    Sparking Asia
+                                </span>
+                                <br />
+                                <span className="bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                    Time Tracker
+                                </span>
+                            </h1>
+                            
+                            <p className="text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
+                                Transform your productivity with intelligent time tracking, 
+                                comprehensive analytics, and seamless team collaboration.
+                            </p>
+                        </div>
+
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                            <div className="group">
+                                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/20">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
+                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-white">{stats?.weekHours?.value || '0h'}</div>
+                                            <div className="text-sm text-white/60">{stats?.weekHours?.label || 'This Week'}</div>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-white mb-1">Active Hours</h3>
+                                    <p className="text-sm text-white/60">{stats?.weekHours?.changeLabel || 'No data yet'}</p>
+                                </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div className="group">
+                                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 hover:border-blue-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                            </svg>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-white">{stats?.activeProjects?.value || '0'}</div>
+                                            <div className="text-sm text-white/60">{stats?.activeProjects?.label || 'Active'}</div>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-white mb-1">Projects</h3>
+                                    <p className="text-sm text-white/60">{stats?.activeProjects?.changeLabel || 'No projects yet'}</p>
+                                </div>
+                            </div>
+
+                            <div className="group">
+                                <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/10 hover:border-purple-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                            </svg>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-white">{stats?.efficiency?.value || '0%'}</div>
+                                            <div className="text-sm text-white/60">{stats?.efficiency?.label || 'Efficiency'}</div>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-white mb-1">Performance</h3>
+                                    <p className="text-sm text-white/60">{stats?.efficiency?.changeLabel || 'No data yet'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions - Floating Action Bar */}
+                        <div className="mb-16">
+                            <div className="max-w-4xl mx-auto">
+                                <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
+                                    <h2 className="text-2xl font-bold text-white mb-6 text-center">Quick Actions</h2>
+                                    <div className="flex flex-wrap justify-center gap-4">
+                                        <Link href={route('work-hours.create')} className="group flex-1 min-w-[200px] max-w-[250px]">
+                                            <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-md p-6 rounded-xl border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/20 hover:scale-105">
+                                                <div className="text-center">
+                                                    <div className="p-4 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg mb-4 mx-auto w-fit">
+                                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                        </svg>
+                                                    </div>
+                                                    <h3 className="text-lg font-semibold text-white mb-2">Start Tracking</h3>
+                                                    <p className="text-sm text-white/70">Begin a new work session</p>
+                                                </div>
+                                            </div>
+                                        </Link>
+
+                                        {auth.user?.role === 'admin' && (
+                                            <>
+                                                <Link href={route('projects.create')} className="group flex-1 min-w-[200px] max-w-[250px]">
+                                                    <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-md p-6 rounded-xl border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20 hover:scale-105">
+                                                        <div className="text-center">
+                                                            <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg mb-4 mx-auto w-fit">
+                                                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                                                </svg>
+                                                            </div>
+                                                            <h3 className="text-lg font-semibold text-white mb-2">New Project</h3>
+                                                            <p className="text-sm text-white/70">Create a project</p>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+
+                                                <Link href={route('clients.create')} className="group flex-1 min-w-[200px] max-w-[250px]">
+                                                    <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-md p-6 rounded-xl border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20 hover:scale-105">
+                                                        <div className="text-center">
+                                                            <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg mb-4 mx-auto w-fit">
+                                                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                                </svg>
+                                                            </div>
+                                                            <h3 className="text-lg font-semibold text-white mb-2">Add Client</h3>
+                                                            <p className="text-sm text-white/70">Manage clients</p>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Navigation Cards */}
+                        <div className="max-w-6xl mx-auto">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-white mb-4">Management Hub</h2>
+                                <p className="text-white/70 text-lg">Access all your productivity tools in one place</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <Link href={route('work-hours.index')} className="group">
-                                    <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-xl border border-green-200 hover:shadow-lg transition-all group-hover:from-green-100 group-hover:to-green-200">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="p-3 bg-gradient-to-r from-green-600 to-green-700 rounded-lg">
-                                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 hover:border-green-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/20 hover:scale-105 hover:-translate-y-2">
+                                        <div className="text-center">
+                                            <div className="p-4 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg mb-6 mx-auto w-fit group-hover:shadow-green-500/50 transition-all duration-300">
+                                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </div>
+                                            <h3 className="text-xl font-bold text-white mb-3">Work Hours</h3>
+                                            <p className="text-white/70 text-sm leading-relaxed">Track and manage your daily work hours with precision</p>
                                         </div>
-                                        <h3 className="text-lg font-semibold text-green-800 mb-2">Work Hours</h3>
-                                        <p className="text-sm text-green-700">Track and manage your daily work hours</p>
                                     </div>
                                 </Link>
 
                                 {auth.user?.role === 'admin' && (
                                     <>
                                         <Link href={route('work-hours.report')} className="group">
-                                            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-6 rounded-xl border border-yellow-200 hover:shadow-lg transition-all group-hover:from-yellow-100 group-hover:to-yellow-200">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="p-3 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg">
-                                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 hover:border-yellow-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-yellow-500/20 hover:scale-105 hover:-translate-y-2">
+                                                <div className="text-center">
+                                                    <div className="p-4 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl shadow-lg mb-6 mx-auto w-fit group-hover:shadow-yellow-500/50 transition-all duration-300">
+                                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                                         </svg>
                                                     </div>
+                                                    <h3 className="text-xl font-bold text-white mb-3">Analytics</h3>
+                                                    <p className="text-white/70 text-sm leading-relaxed">Comprehensive reports and productivity insights</p>
                                                 </div>
-                                                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Reports</h3>
-                                                <p className="text-sm text-yellow-700">View comprehensive work hour reports</p>
                                             </div>
                                         </Link>
 
                                         <Link href={route('projects.index')} className="group">
-                                            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200 hover:shadow-lg transition-all group-hover:from-blue-100 group-hover:to-blue-200">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="p-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg">
-                                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-105 hover:-translate-y-2">
+                                                <div className="text-center">
+                                                    <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg mb-6 mx-auto w-fit group-hover:shadow-blue-500/50 transition-all duration-300">
+                                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                                         </svg>
                                                     </div>
+                                                    <h3 className="text-xl font-bold text-white mb-3">Projects</h3>
+                                                    <p className="text-white/70 text-sm leading-relaxed">Organize and manage your project portfolio</p>
                                                 </div>
-                                                <h3 className="text-lg font-semibold text-blue-800 mb-2">Projects</h3>
-                                                <p className="text-sm text-blue-700">Manage your projects and assignments</p>
                                             </div>
                                         </Link>
 
                                         <Link href={route('clients.index')} className="group">
-                                            <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200 hover:shadow-lg transition-all group-hover:from-purple-100 group-hover:to-purple-200">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="p-3 bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg">
-                                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 hover:border-purple-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-105 hover:-translate-y-2">
+                                                <div className="text-center">
+                                                    <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg mb-6 mx-auto w-fit group-hover:shadow-purple-500/50 transition-all duration-300">
+                                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                                         </svg>
                                                     </div>
+                                                    <h3 className="text-xl font-bold text-white mb-3">Clients</h3>
+                                                    <p className="text-white/70 text-sm leading-relaxed">Build and maintain strong client relationships</p>
                                                 </div>
-                                                <h3 className="text-lg font-semibold text-purple-800 mb-2">Clients</h3>
-                                                <p className="text-sm text-purple-700">Manage your client relationships</p>
                                             </div>
                                         </Link>
                                     </>
                                 )}
-                            </div>
-
-                            <div className="bg-gradient-to-r from-green-50 to-yellow-50 p-6 rounded-xl border border-green-200">
-                                <h2 className="text-xl font-semibold text-green-800 mb-4">Quick Actions</h2>
-                                <div className="flex flex-wrap gap-3">
-                                    <Link href={route('work-hours.create')} className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl">
-                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        Add Work Entry
-                                    </Link>
-                                    {auth.user?.role === 'admin' && (
-                                        <>
-                                            <Link href={route('projects.create')} className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl">
-                                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                </svg>
-                                                New Project
-                                            </Link>
-                                            <Link href={route('clients.create')} className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl">
-                                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                </svg>
-                                                Add Client
-                                            </Link>
-                                        </>
-                                    )}
-                                </div>
                             </div>
                         </div>
                     </div>

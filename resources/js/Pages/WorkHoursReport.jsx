@@ -5,13 +5,14 @@ import 'react-datepicker/dist/react-datepicker.css';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { timeFormat } from '../helpers';
+import AnimatedBackground from '../Components/AnimatedBackground';
 
 function Toast({ message, onClose }) {
     if (!message) return null;
     return (
-        <div className="fixed top-5 right-5 z-50 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg shadow-lg flex items-center border-l-4 border-yellow-400">
+        <div className="fixed top-5 right-5 z-50 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center backdrop-blur-xl border border-white/20">
             <span className="font-medium">{message}</span>
-            <button onClick={onClose} className="ml-4 text-white hover:text-yellow-200 font-bold text-lg">&times;</button>
+            <button onClick={onClose} className="ml-4 text-white hover:text-blue-200 font-bold text-lg transition-colors">&times;</button>
         </div>
     );
 }
@@ -235,33 +236,53 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     };
 
     return (
-        <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Work Hours Report</h2>}>
-            <Head title="Work Hours" />
+        <AuthenticatedLayout 
+            user={auth.user} 
+            header={
+                <h2 className="font-semibold text-xl text-white leading-tight">
+                    Work Hours Report
+                </h2>
+            }
+        >
+            <Head title="Work Hours Report" />
+            <AnimatedBackground />
             <Toast message={toast} onClose={closeToast} />
             {deleteId && (
-                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md border-t-4 border-yellow-400">
-                        <h2 className="text-xl font-bold mb-4 text-gray-800">Confirm Delete</h2>
-                        <p className="mb-6 text-gray-600">Are you sure you want to delete this entry?</p>
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20">
+                        <h2 className="text-xl font-bold mb-4 text-white">Confirm Delete</h2>
+                        <p className="mb-6 text-gray-200">Are you sure you want to delete this entry?</p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setDeleteId(null)} className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">Cancel</button>
-                            <button onClick={confirmDelete} className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-medium transition-all">Delete</button>
+                            <button 
+                                onClick={() => setDeleteId(null)} 
+                                className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all backdrop-blur-xl border border-white/20"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDelete} 
+                                className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-medium transition-all shadow-lg"
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
-            <div className="py-12 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+            <div className="py-12 min-h-screen">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden shadow-xl sm:rounded-xl border-t-4 border-gradient-to-r from-green-600 to-yellow-400">
-                        <div className="p-8 text-gray-900">
+                    <div className="bg-white/10 backdrop-blur-xl overflow-hidden shadow-2xl sm:rounded-2xl border border-white/20">
+                        <div className="p-8 text-white">
                             <div className="flex justify-between items-center mb-8">
                                 <div>
-                                    <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">Work Hours Report</h1>
-                                    <p className="text-gray-600 mt-2">Comprehensive analysis of work hours and productivity</p>
+                                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                        Work Hours Report
+                                    </h1>
+                                    <p className="text-gray-300 mt-2">Comprehensive analysis of work hours and productivity</p>
                                 </div>
                                 <button
                                     onClick={exportToCSV}
-                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
+                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-xl"
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -273,36 +294,36 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                 {/* Main Filters Row */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     {/* Date Range Filter */}
-                                    <div className="bg-gradient-to-r from-green-50 to-yellow-50 p-4 rounded-lg border border-green-200">
-                                        <h3 className="text-sm font-semibold text-green-800 mb-3">Filter by Date Range</h3>
+                                    <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                        <h3 className="text-sm font-semibold text-white mb-3">Filter by Date Range</h3>
                                         <div className="flex gap-2 flex-wrap">
-                                            <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>All Dates</button>
-                                            <button onClick={() => handleFilter('today')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'today' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Today</button>
-                                            <button onClick={() => handleFilter('week')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'week' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Week</button>
-                                            <button onClick={() => handleFilter('month')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'month' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Month</button>
-                                            <button onClick={() => handleFilter('custom')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'custom' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Custom Range</button>
+                                            <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>All Dates</button>
+                                            <button onClick={() => handleFilter('today')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeFilter === 'today' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Today</button>
+                                            <button onClick={() => handleFilter('week')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeFilter === 'week' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>This Week</button>
+                                            <button onClick={() => handleFilter('month')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeFilter === 'month' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>This Month</button>
+                                            <button onClick={() => handleFilter('custom')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeFilter === 'custom' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Custom Range</button>
                                         </div>
                                         {activeFilter === 'custom' && (
-                                            <div className="flex gap-3 items-center mt-4 p-3 bg-white rounded-lg border border-green-200">
-                                                <span className="text-green-700 font-medium">From:</span>
+                                            <div className="flex gap-3 items-center mt-4 p-3 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20">
+                                                <span className="text-white font-medium">From:</span>
                                                 <DatePicker
                                                     selected={customStartDate}
                                                     onChange={date => setCustomStartDate(date)}
                                                     dateFormat="yyyy-MM-dd"
                                                     maxDate={customEndDate || undefined}
-                                                    className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                    className="px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                 />
-                                                <span className="text-green-700 font-medium">To:</span>
+                                                <span className="text-white font-medium">To:</span>
                                                 <DatePicker
                                                     selected={customEndDate}
                                                     onChange={date => setCustomEndDate(date)}
                                                     dateFormat="yyyy-MM-dd"
                                                     minDate={customStartDate || undefined}
-                                                    className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                    className="px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                 />
                                                 <button
                                                     onClick={() => handleFilter('custom')}
-                                                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
+                                                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50"
                                                     disabled={!customStartDate || !customEndDate}
                                                 >Apply</button>
                                             </div>
@@ -310,17 +331,17 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     </div>
 
                                     {/* User Filter */}
-                                    <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
-                                        <h3 className="text-sm font-semibold text-blue-800 mb-3">Filter by User</h3>
+                                    <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                        <h3 className="text-sm font-semibold text-white mb-3">Filter by User</h3>
                                         <div className="relative w-full" ref={userDropdownRef}>
                                             <button
                                                 type="button"
-                                                className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white text-left flex items-center justify-between hover:bg-blue-50 transition-colors"
+                                                className="w-full px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm text-white text-left flex items-center justify-between hover:bg-white/20 transition-colors"
                                                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                                             >
                                                 <span className="truncate">{getSelectedUserName()}</span>
                                                 <svg 
-                                                    className={`w-4 h-4 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} 
+                                                    className={`w-4 h-4 transition-transform text-gray-300 ${userDropdownOpen ? 'rotate-180' : ''}`} 
                                                     fill="none" 
                                                     stroke="currentColor" 
                                                     viewBox="0 0 24 24"
@@ -330,12 +351,12 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </button>
                                             
                                             {userDropdownOpen && (
-                                                <div className="absolute z-50 w-full mt-1 bg-white border border-blue-300 rounded-lg shadow-xl max-h-60 overflow-hidden">
-                                                    <div className="p-2 border-b border-blue-200">
+                                                <div className="absolute z-50 w-full mt-1 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl max-h-60 overflow-hidden">
+                                                    <div className="p-2 border-b border-white/20">
                                                         <input
                                                             type="text"
                                                             placeholder="Search users..."
-                                                            className="w-full px-3 py-2 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                             value={userSearchTerm}
                                                             onChange={(e) => setUserSearchTerm(e.target.value)}
                                                             autoFocus
@@ -343,11 +364,11 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     </div>
                                                     <div className="max-h-48 overflow-y-auto">
                                                         <div
-                                                            className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser === 'all' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+                                                            className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${activeUser === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'text-white'}`}
                                                             onClick={() => handleUserFilter('all')}
                                                         >
                                                             {activeUser === 'all' && (
-                                                                <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                <svg className="w-4 h-4 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                 </svg>
                                                             )}
@@ -356,11 +377,11 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                         {filteredUsers.map(user => (
                                                             <div
                                                                 key={user.id}
-                                                                className={`px-4 py-2 cursor-pointer hover:bg-blue-50 transition-colors flex items-center ${activeUser == user.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'}`}
+                                                                className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${activeUser == user.id ? 'bg-white/20 text-blue-300 font-medium' : 'text-white'}`}
                                                                 onClick={() => handleUserFilter(user.id)}
                                                             >
                                                                 {activeUser == user.id && (
-                                                                    <svg className="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <svg className="w-4 h-4 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                     </svg>
                                                                 )}
@@ -368,7 +389,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                             </div>
                                                         ))}
                                                         {filteredUsers.length === 0 && userSearchTerm && (
-                                                            <div className="px-4 py-2 text-gray-500 text-sm">No users found</div>
+                                                            <div className="px-4 py-2 text-gray-400 text-sm">No users found</div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -381,7 +402,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                 <div className="flex justify-center">
                                     <button
                                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
+                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-xl"
                                     >
                                         <svg className={`w-5 h-5 mr-2 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -394,30 +415,30 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                 {showAdvancedFilters && (
                                     <div className="space-y-4">
                                         {/* Work Type Filter */}
-                                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
-                                            <h3 className="text-sm font-semibold text-yellow-800 mb-3">Filter by Work Type</h3>
+                                        <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                            <h3 className="text-sm font-semibold text-white mb-3">Filter by Work Type</h3>
                                             <div className="flex gap-2 flex-wrap">
-                                                <button onClick={() => handleWorkTypeFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'all' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>All Types</button>
-                                                <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'tracker' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Tracker</button>
-                                                <button onClick={() => handleWorkTypeFilter('manual')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'manual' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Manual Time</button>
-                                                <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'test_task' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Test Task</button>
-                                                <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'fixed' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Fixed Project</button>
-                                                <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'office_work' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Office Work</button>
-                                                <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeWorkType === 'outside_of_upwork' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg' : 'bg-white text-yellow-700 border border-yellow-300 hover:bg-yellow-50'}`}>Outside of Upwork</button>
+                                                <button onClick={() => handleWorkTypeFilter('all')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeWorkType === 'all' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>All Types</button>
+                                                <button onClick={() => handleWorkTypeFilter('tracker')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeWorkType === 'tracker' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Tracker</button>
+                                                <button onClick={() => handleWorkTypeFilter('manual')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeWorkType === 'manual' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Manual Time</button>
+                                                <button onClick={() => handleWorkTypeFilter('test_task')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeWorkType === 'test_task' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Test Task</button>
+                                                <button onClick={() => handleWorkTypeFilter('fixed')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeWorkType === 'fixed' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Fixed Project</button>
+                                                <button onClick={() => handleWorkTypeFilter('office_work')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeWorkType === 'office_work' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Office Work</button>
+                                                <button onClick={() => handleWorkTypeFilter('outside_of_upwork')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeWorkType === 'outside_of_upwork' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>Outside of Upwork</button>
                                             </div>
                                         </div>
 
                                         {/* Secondary Filters Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                             {/* Designation Filter */}
-                                            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
-                                                <h3 className="text-sm font-semibold text-indigo-800 mb-3">Filter by Designation</h3>
+                                            <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                                <h3 className="text-sm font-semibold text-white mb-3">Filter by Designation</h3>
                                                 <div className="space-y-2">
                                                     <div className="relative">
                                                         <input
                                                             type="text"
                                                             placeholder="Search designations..."
-                                                            className="w-full px-3 py-2 text-sm border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                             value={designationSearch}
                                                             onChange={(e) => setDesignationSearch(e.target.value)}
                                                         />
@@ -425,7 +446,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     <div className="max-h-32 overflow-y-auto space-y-1">
                                                         <button 
                                                             onClick={() => handleDesignationFilter('all')} 
-                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeDesignation === 'all' ? 'bg-indigo-100 text-indigo-800 font-medium' : 'hover:bg-indigo-50 text-indigo-700'}`}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeDesignation === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                         >
                                                             All Designations
                                                         </button>
@@ -435,7 +456,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                             <button 
                                                                 key={designation} 
                                                                 onClick={() => handleDesignationFilter(designation)} 
-                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeDesignation === designation ? 'bg-indigo-100 text-indigo-800 font-medium' : 'hover:bg-indigo-50 text-indigo-700'}`}
+                                                                className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeDesignation === designation ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                                 title={designation}
                                                             >
                                                                 {designation}
@@ -446,14 +467,14 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </div>
 
                                             {/* Tracker Filter */}
-                                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                                                <h3 className="text-sm font-semibold text-purple-800 mb-3">Filter by Tracker</h3>
+                                            <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                                <h3 className="text-sm font-semibold text-white mb-3">Filter by Tracker</h3>
                                                 <div className="space-y-2">
                                                     <div className="relative">
                                                         <input
                                                             type="text"
                                                             placeholder="Search trackers..."
-                                                            className="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                             value={trackerSearch}
                                                             onChange={(e) => setTrackerSearch(e.target.value)}
                                                         />
@@ -461,7 +482,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     <div className="max-h-32 overflow-y-auto space-y-1">
                                                         <button 
                                                             onClick={() => handleTrackerFilter('all')} 
-                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeTracker === 'all' ? 'bg-purple-100 text-purple-800 font-medium' : 'hover:bg-purple-50 text-purple-700'}`}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeTracker === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                         >
                                                             All Trackers
                                                         </button>
@@ -471,7 +492,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                             <button 
                                                                 key={tracker} 
                                                                 onClick={() => handleTrackerFilter(tracker)} 
-                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm capitalize ${activeTracker === tracker ? 'bg-purple-100 text-purple-800 font-medium' : 'hover:bg-purple-50 text-purple-700'}`}
+                                                                className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm capitalize ${activeTracker === tracker ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                                 title={tracker}
                                                             >
                                                                 {tracker}
@@ -482,14 +503,14 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </div>
 
                                             {/* Project Filter */}
-                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-                                                <h3 className="text-sm font-semibold text-green-800 mb-3">Filter by Project</h3>
+                                            <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                                <h3 className="text-sm font-semibold text-white mb-3">Filter by Project</h3>
                                                 <div className="space-y-2">
                                                     <div className="relative">
                                                         <input
                                                             type="text"
                                                             placeholder="Search projects..."
-                                                            className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                             value={projectSearch}
                                                             onChange={(e) => setProjectSearch(e.target.value)}
                                                         />
@@ -497,7 +518,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     <div className="max-h-32 overflow-y-auto space-y-1">
                                                         <button 
                                                             onClick={() => handleProjectFilter('all')} 
-                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeProject === 'all' ? 'bg-green-100 text-green-800 font-medium' : 'hover:bg-green-50 text-green-700'}`}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeProject === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                         >
                                                             All Projects
                                                         </button>
@@ -507,7 +528,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                             <button 
                                                                 key={project} 
                                                                 onClick={() => handleProjectFilter(project)} 
-                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeProject === project ? 'bg-green-100 text-green-800 font-medium' : 'hover:bg-green-50 text-green-700'}`}
+                                                                className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeProject === project ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                                 title={project}
                                                             >
                                                                 {project}
@@ -518,14 +539,14 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </div>
 
                                             {/* Client Filter */}
-                                            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg border border-teal-200">
-                                                <h3 className="text-sm font-semibold text-teal-800 mb-3">Filter by Client</h3>
+                                            <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                                <h3 className="text-sm font-semibold text-white mb-3">Filter by Client</h3>
                                                 <div className="space-y-2">
                                                     <div className="relative">
                                                         <input
                                                             type="text"
                                                             placeholder="Search clients..."
-                                                            className="w-full px-3 py-2 text-sm border border-teal-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                             value={clientSearch}
                                                             onChange={(e) => setClientSearch(e.target.value)}
                                                         />
@@ -533,7 +554,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     <div className="max-h-32 overflow-y-auto space-y-1">
                                                         <button 
                                                             onClick={() => handleClientFilter('all')} 
-                                                            className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeClient === 'all' ? 'bg-teal-100 text-teal-800 font-medium' : 'hover:bg-teal-50 text-teal-700'}`}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeClient === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                         >
                                                             All Clients
                                                         </button>
@@ -543,7 +564,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                             <button 
                                                                 key={client} 
                                                                 onClick={() => handleClientFilter(client)} 
-                                                                className={`w-full text-left px-3 py-2 rounded-md transition-all text-sm ${activeClient === client ? 'bg-teal-100 text-teal-800 font-medium' : 'hover:bg-teal-50 text-teal-700'}`}
+                                                                className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeClient === client ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
                                                                 title={client}
                                                             >
                                                                 {client}
@@ -558,41 +579,41 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
 
                                 {/* Active Filters Summary */}
                                 {(activeFilter !== 'all' || activeWorkType !== 'all' || activeUser !== 'all' || activeDesignation !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
-                                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-4">
-                                        <h3 className="text-sm font-semibold text-blue-800 mb-2">Active Filters:</h3>
+                                    <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20 mb-4">
+                                        <h3 className="text-sm font-semibold text-white mb-2">Active Filters:</h3>
                                         <div className="flex gap-2 flex-wrap text-xs">
                                             {activeFilter !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-md">
+                                                <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg backdrop-blur-xl border border-blue-400/20">
                                                     Date: {activeFilter === 'custom' ? `${customStartDate?.toLocaleDateString()} - ${customEndDate?.toLocaleDateString()}` : activeFilter}
                                                 </span>
                                             )}
                                             {activeWorkType !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">
+                                                <span className="inline-flex items-center px-2 py-1 bg-purple-500/20 text-purple-300 rounded-lg backdrop-blur-xl border border-purple-400/20">
                                                     Work Type: {formatWorkType(activeWorkType)}
                                                 </span>
                                             )}
                                             {activeUser !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md">
+                                                <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg backdrop-blur-xl border border-blue-400/20">
                                                     User: {getSelectedUserName()}
                                                 </span>
                                             )}
                                             {activeDesignation !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-800 rounded-md">
+                                                <span className="inline-flex items-center px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg backdrop-blur-xl border border-indigo-400/20">
                                                     Designation: {activeDesignation}
                                                 </span>
                                             )}
                                             {activeTracker !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded-md">
+                                                <span className="inline-flex items-center px-2 py-1 bg-purple-500/20 text-purple-300 rounded-lg backdrop-blur-xl border border-purple-400/20">
                                                     Tracker: {activeTracker}
                                                 </span>
                                             )}
                                             {activeProject !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-md">
+                                                <span className="inline-flex items-center px-2 py-1 bg-green-500/20 text-green-300 rounded-lg backdrop-blur-xl border border-green-400/20">
                                                     Project: {activeProject.length > 15 ? `${activeProject.substring(0, 15)}...` : activeProject}
                                                 </span>
                                             )}
                                             {activeClient !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-teal-100 text-teal-800 rounded-md">
+                                                <span className="inline-flex items-center px-2 py-1 bg-teal-500/20 text-teal-300 rounded-lg backdrop-blur-xl border border-teal-400/20">
                                                     Client: {activeClient.length > 15 ? `${activeClient.substring(0, 15)}...` : activeClient}
                                                 </span>
                                             )}
@@ -610,7 +631,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                 setCustomEndDate(null);
                                                 router.get(route('work-hours.report'));
                                             }}
-                                            className="mt-3 inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all text-xs"
+                                            className="mt-3 inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-all text-xs backdrop-blur-xl"
                                         >
                                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -620,9 +641,9 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     </div>
                                 )}
                             </div>
-                            <div className="overflow-x-auto shadow-xl ring-1 ring-black ring-opacity-5 rounded-xl">
-                                <table className="min-w-full divide-y divide-gray-200 table-fixed">
-                                    <thead className="bg-gradient-to-r from-green-600 to-green-700">
+                            <div className="overflow-x-auto shadow-2xl ring-1 ring-white/20 rounded-2xl">
+                                <table className="min-w-full divide-y divide-white/20 table-fixed">
+                                    <thead className="bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-xl">
                                         <tr>
                                             <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">User</th>
                                             <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Designation</th>
@@ -633,31 +654,37 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
                                             <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
-                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-green-600 to-green-700">Actions</th>
+                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-xl">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-white/5 divide-y divide-white/10 backdrop-blur-xl">
                                         {workHours.map((entry, index) => (
-                                            <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-green-50 transition-colors`}>
-                                                <td className="px-6 py-4 text-sm text-gray-900 truncate font-medium">{entry.user.name}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-600 truncate">{entry.user.designation || '-'}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-900 truncate">
-                                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                            <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white/5' : 'bg-white/10'} hover:bg-white/20 transition-colors backdrop-blur-xl`}>
+                                                <td className="px-6 py-4 text-sm text-white truncate font-medium">{entry.user.name}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-300 truncate">{entry.user.designation || '-'}</td>
+                                                <td className="px-6 py-4 text-sm text-white truncate">
+                                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-500/20 text-blue-300 rounded-lg backdrop-blur-xl border border-blue-400/20">
                                                         {formatWorkType(entry.work_type)}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-gray-900 capitalize truncate font-medium">{entry.tracker}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{entry.date}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-900 truncate font-medium" title={entry.project?.name || 'No Project'}>{entry.project?.name || 'No Project'}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-600 truncate" title={entry.project?.client?.name || 'No Client'}>{entry.project?.client?.name || 'No Client'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-700">{timeFormat(entry.hours)}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate" title={entry.description}>{entry.description}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white">
+                                                <td className="px-6 py-4 text-sm text-white capitalize truncate font-medium">{entry.tracker}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">{entry.date}</td>
+                                                <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.project?.name || 'No Project'}>{entry.project?.name || 'No Project'}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-300 truncate" title={entry.project?.client?.name || 'No Client'}>{entry.project?.client?.name || 'No Client'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-400">{timeFormat(entry.hours)}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-300 max-w-xs truncate" title={entry.description}>{entry.description}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white/5 backdrop-blur-xl">
                                                     <div className="flex space-x-2">
-                                                        <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xs font-medium rounded-md transition-all">
+                                                        <Link 
+                                                            href={route('work-hours.edit', entry.id)} 
+                                                            className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-xs font-medium rounded-lg transition-all backdrop-blur-xl"
+                                                        >
                                                             Edit
                                                         </Link>
-                                                        <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xs font-medium rounded-md transition-all">
+                                                        <button 
+                                                            onClick={() => handleDelete(entry.id)} 
+                                                            className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-medium rounded-lg transition-all backdrop-blur-xl"
+                                                        >
                                                             Delete
                                                         </button>
                                                     </div>
@@ -665,14 +692,14 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </tr>
                                         ))}
                                     </tbody>
-                                <tfoot className="bg-gradient-to-r from-gray-50 to-green-50">
+                                <tfoot className="bg-white/10 backdrop-blur-xl border-t border-white/20">
                                     <tr>
                                         <td colSpan={7} className="px-6 py-4"></td>
-                                        <td className="px-6 py-4 font-bold text-right text-green-800 text-lg">
+                                        <td className="px-6 py-4 font-bold text-right text-blue-300 text-lg">
                                             Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                         </td>
                                         <td className="px-6 py-4"></td>
-                                        <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-gray-50 to-green-50"></td>
+                                        <td className="w-32 px-6 py-4 sticky right-0 bg-white/10 backdrop-blur-xl"></td>
                                     </tr>
                                 </tfoot>
                                 </table>
