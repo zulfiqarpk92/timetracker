@@ -173,7 +173,7 @@ export default function Dashboard({ auth, stats }) {
                         <div className="text-center mb-16">
                             <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-md border border-white/20 mb-6">
                                 <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-                                <span className="text-white/80 text-sm font-medium">Welcome back, {auth.user?.name}</span>
+                                <span className="text-white/80 text-sm font-medium">Welcome vback, {auth.user?.name}</span>
                             </div>
                             
                             <h1 className="text-4xl md:text-6xl font-bold mb-6">
