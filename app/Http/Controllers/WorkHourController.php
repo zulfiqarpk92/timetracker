@@ -23,7 +23,7 @@ class WorkHourController extends Controller
         $user = auth()->user();
         $query = WorkHour::with('user', 'project', 'project.client');
         
-        // All users (admin and employee) should only see their own work hours
+        // WorkHoursList is for personal work diary - everyone sees only their own entries
         $query->where('user_id', $user->id);
         
         $filter = $request->input('filter', 'all');
@@ -114,12 +114,6 @@ class WorkHourController extends Controller
 
     public function edit(WorkHour $workHour)
     {
-        // Check if user can edit this work hour entry
-        $user = auth()->user();
-        if ($user->role === 'employee' && $workHour->user_id !== $user->id) {
-            return redirect()->route('work-hours.index')->with('error', 'You can only edit your own work entries.');
-        }
-
         $projects = Project::select('id', 'name', 'client_id')
             ->with(['client:id,name'])
             ->orderBy('name')
@@ -133,12 +127,6 @@ class WorkHourController extends Controller
 
     public function update(Request $request, WorkHour $workHour)
     {
-        // Check if user can update this work hour entry
-        $user = auth()->user();
-        if ($user->role === 'employee' && $workHour->user_id !== $user->id) {
-            return redirect()->route('work-hours.index')->with('error', 'You can only update your own work entries.');
-        }
-
         $validated = $request->validate([
             'date' => 'required|date',
             'hours' => 'required|integer|min:0|max:24',
@@ -157,12 +145,6 @@ class WorkHourController extends Controller
 
     public function destroy(WorkHour $workHour)
     {
-        // Check if user can delete this work hour entry
-        $user = auth()->user();
-        if ($user->role === 'employee' && $workHour->user_id !== $user->id) {
-            return redirect()->route('work-hours.index')->with('error', 'You can only delete your own work entries.');
-        }
-
         $workHour->delete();
         return redirect()->route('work-hours.index')->with('success', 'Work hour entry deleted.');
     }
