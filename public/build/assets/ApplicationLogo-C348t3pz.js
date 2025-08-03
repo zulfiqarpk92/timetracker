@@ -1,1 +1,0 @@
-import{j as a}from"./app-BsnOIXhQ.js";function t({size:s="40"}){return a.jsx("div",{className:"flex justify-center",children:a.jsx("img",{src:"https://www.sparkingasia.com/wp-content/uploads/2022/03/sa.png",className:`w-${s} h-${s} object-contain filter drop-shadow-lg`,alt:"Sparking Asia Logo"})})}export{t as A};

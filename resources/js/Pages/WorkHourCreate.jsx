@@ -93,7 +93,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Profile Name (Tracker) */}
-                                    {!['office_work', 'outside_of_upwork'].includes(createForm.data.work_type) && (
+                                    {['tracker', 'manual', 'test_task', 'fixed'].includes(createForm.data.work_type) && (
                                         <div className="relative">
                                             <label className="block text-sm font-semibold text-white/90 mb-3">
                                                 Profile Name <span className="text-red-400">*</span>
@@ -114,6 +114,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                                 }}
                                                 onFocus={handleTrackerFocus}
                                                 onBlur={() => setTimeout(() => setShowTrackerOptions(false), 150)}
+                                                required
                                             />
                                             {showTrackerOptions && (
                                                 <div 

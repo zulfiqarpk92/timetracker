@@ -9,10 +9,20 @@ use Inertia\Inertia;
 
 class ProjectController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $projects = Project::with('client')->orderBy('name')->get();
-        // dd($projects); // Debugging line, remove in production
+        $perPage = $request->get('perPage', 10);
+        
+        // Validate perPage to ensure it's within reasonable limits
+        if (!in_array($perPage, [10, 25, 50, 100])) {
+            $perPage = 10;
+        }
+        
+        $projects = Project::with('client')
+            ->orderBy('name')
+            ->paginate($perPage)
+            ->appends($request->query());
+            
         return Inertia::render('ProjectsList', [
             'projects' => $projects,
         ]);

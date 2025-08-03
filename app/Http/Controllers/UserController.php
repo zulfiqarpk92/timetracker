@@ -11,10 +11,21 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->get('perPage', 10);
+        
+        // Validate perPage to ensure it's within reasonable limits
+        if (!in_array($perPage, [10, 25, 50, 100])) {
+            $perPage = 10;
+        }
+        
+        $users = User::orderBy('name')
+            ->paginate($perPage)
+            ->appends($request->query());
+            
         return Inertia::render('UsersList', [
-            'users' => User::all(),
+            'users' => $users,
         ]);
     }
 

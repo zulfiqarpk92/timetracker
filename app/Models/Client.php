@@ -11,6 +11,11 @@ class Client extends Model
 
     protected $fillable = [
         'name',
+        'tags',
+    ];
+
+    protected $casts = [
+        'tags' => 'array',
     ];
 
     public function projects()

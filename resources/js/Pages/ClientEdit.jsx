@@ -1,11 +1,13 @@
 import React from 'react';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import AnimatedBackground from '../Components/AnimatedBackground';
+import TagInput from '../Components/TagInput';
 import { Head, useForm, Link } from '@inertiajs/react';
 
 export default function ClientEdit({ auth, client }) {
     const form = useForm({
         name: client.name || '',
+        tags: client.tags || [],
     });
 
     const handleSubmit = (e) => {
@@ -50,9 +52,26 @@ export default function ClientEdit({ auth, client }) {
                                     {form.errors.name && <div className="text-red-400 text-sm mt-2">{form.errors.name}</div>}
                                 </div>
 
+                                {/* Tags */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-white/90 mb-3">
+                                        Tags
+                                        <span className="text-white/50 font-normal ml-2">(optional)</span>
+                                    </label>
+                                    <TagInput
+                                        tags={form.data.tags}
+                                        onChange={(newTags) => form.setData('tags', newTags)}
+                                        placeholder="Add tags to categorize this client..."
+                                    />
+                                    {form.errors.tags && <div className="text-red-400 text-sm mt-2">{form.errors.tags}</div>}
+                                    <p className="text-white/60 text-sm mt-2">
+                                        Add tags to help organize and search for clients (e.g., "Enterprise", "Startup", "Local")
+                                    </p>
+                                </div>
+
                                 {/* Current Client Display */}
                                 <div className="p-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-xl border border-white/20">
-                                    <div className="flex items-center">
+                                    <div className="flex items-center mb-4">
                                         <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg">
                                             {client.name.charAt(0).toUpperCase()}
                                         </div>
@@ -61,6 +80,21 @@ export default function ClientEdit({ auth, client }) {
                                             <p className="font-semibold text-white text-lg">{client.name}</p>
                                         </div>
                                     </div>
+                                    {client.tags && client.tags.length > 0 && (
+                                        <div>
+                                            <p className="text-sm text-white/60 mb-2">Current Tags:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {client.tags.map((tag, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="inline-flex px-2 py-1 text-xs font-medium bg-green-500/20 text-green-300 rounded-md backdrop-blur-xl border border-green-400/30"
+                                                    >
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Submit Buttons */}

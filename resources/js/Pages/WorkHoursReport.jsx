@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -6,6 +6,7 @@ import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { timeFormat } from '../helpers';
 import AnimatedBackground from '../Components/AnimatedBackground';
+import { TraditionalPagination } from '../Components/Pagination';
 
 function Toast({ message, onClose }) {
     if (!message) return null;
@@ -13,6 +14,32 @@ function Toast({ message, onClose }) {
         <div className="fixed top-5 right-5 z-50 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center backdrop-blur-xl border border-white/20">
             <span className="font-medium">{message}</span>
             <button onClick={onClose} className="ml-4 text-white hover:text-blue-200 font-bold text-lg transition-colors">&times;</button>
+        </div>
+    );
+}
+
+function FilterPagination({ currentPage, totalPages, onPageChange }) {
+    if (totalPages <= 1) return null;
+    
+    return (
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
+            <button
+                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-2 py-1 text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
+            >
+                ← Prev
+            </button>
+            <span className="text-xs text-white/70">
+                Page {currentPage} of {totalPages}
+            </span>
+            <button
+                onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="px-2 py-1 text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
+            >
+                Next →
+            </button>
         </div>
     );
 }
@@ -33,7 +60,7 @@ const getDateRange = (filter) => {
     return { start, end };
 };
 
-export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all', designation = 'all', tracker = 'all', project = 'all', client = 'all' }) {
+export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all', designation = 'all', tracker = 'all', project = 'all', client = 'all', perPage = 15 }) {
     const [deleteId, setDeleteId] = useState(null);
     const [toast, setToast] = useState(flash?.success || '');
     const [activeFilter, setActiveFilter] = useState(filter);
@@ -45,29 +72,19 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const [activeClient, setActiveClient] = useState(client);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
-    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [designationSearch, setDesignationSearch] = useState('');
     const [trackerSearch, setTrackerSearch] = useState('');
     const [projectSearch, setProjectSearch] = useState('');
     const [clientSearch, setClientSearch] = useState('');
-    const userDropdownRef = useRef(null);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
-                setUserDropdownOpen(false);
-                setUserSearchTerm('');
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+    const [selectedPerPage, setSelectedPerPage] = useState(perPage);
+    
+    // Pagination states for filters
+    const [userPage, setUserPage] = useState(1);
+    const [projectPage, setProjectPage] = useState(1);
+    const [clientPage, setClientPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Helper to format work type for display
     const formatWorkType = (workType) => {
@@ -84,22 +101,22 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
 
     // Helper to get unique values for filters
     const getUniqueDesignations = () => {
-        const designations = [...new Set(workHours.map(entry => entry.user?.designation).filter(Boolean))];
+        const designations = [...new Set(workHours?.data?.map(entry => entry.user?.designation).filter(Boolean) || [])];
         return designations.sort();
     };
 
     const getUniqueTrackers = () => {
-        const trackers = [...new Set(workHours.map(entry => entry.tracker).filter(Boolean))];
+        const trackers = [...new Set(workHours?.data?.map(entry => entry.tracker).filter(Boolean) || [])];
         return trackers.sort();
     };
 
     const getUniqueProjects = () => {
-        const projects = [...new Set(workHours.map(entry => entry.project?.name).filter(Boolean))];
+        const projects = [...new Set(workHours?.data?.map(entry => entry.project?.name).filter(Boolean) || [])];
         return projects.sort();
     };
 
     const getUniqueClients = () => {
-        const clients = [...new Set(workHours.map(entry => entry.project?.client?.name).filter(Boolean))];
+        const clients = [...new Set(workHours?.data?.map(entry => entry.project?.client?.name).filter(Boolean) || [])];
         return clients.sort();
     };
 
@@ -116,7 +133,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     };
 
     const exportToCSV = () => {
-        const data = workHours.map(entry => ({
+        const data = workHours?.data?.map(entry => ({
             User: entry.user.name,
             Designation: entry.user.designation || 'N/A',
             'Work Type': formatWorkType(entry.work_type),
@@ -126,7 +143,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
             Client: entry.project?.client?.name || 'No Client',
             Hours: decimalToDuration(entry.hours),
             Description: entry.description,
-        }));
+        })) || [];
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'WorkHours');
@@ -155,7 +172,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
 
     const handleUserFilter = (id) => {
         setActiveUser(id);
-        setUserDropdownOpen(false);
         setUserSearchTerm('');
         handleFilter(activeFilter, activeWorkType, id);
     };
@@ -165,16 +181,36 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         user.name.toLowerCase().includes(userSearchTerm.toLowerCase())
     );
 
-    // Get currently selected user name
-    const getSelectedUserName = () => {
-        if (activeUser === 'all') return 'All Users';
-        const user = users.find(u => u.id == activeUser);
-        return user ? user.name : 'Select User';
+    // Pagination helpers
+    const paginateItems = (items, page, perPage) => {
+        const startIndex = (page - 1) * perPage;
+        const endIndex = startIndex + perPage;
+        return items.slice(startIndex, endIndex);
     };
+
+    const getTotalPages = (totalItems, perPage) => {
+        return Math.ceil(totalItems / perPage);
+    };
+
+    // Paginated filter data
+    const paginatedUsers = paginateItems(filteredUsers, userPage, itemsPerPage);
+    const totalUserPages = getTotalPages(filteredUsers.length, itemsPerPage);
+
+    const filteredProjects = getUniqueProjects().filter(project => 
+        project.toLowerCase().includes(projectSearch.toLowerCase())
+    );
+    const paginatedProjects = paginateItems(filteredProjects, projectPage, itemsPerPage);
+    const totalProjectPages = getTotalPages(filteredProjects.length, itemsPerPage);
+
+    const filteredClients = getUniqueClients().filter(client => 
+        client.toLowerCase().includes(clientSearch.toLowerCase())
+    );
+    const paginatedClients = paginateItems(filteredClients, clientPage, itemsPerPage);
+    const totalClientPages = getTotalPages(filteredClients.length, itemsPerPage);
 
     const handleFilter = (filter, workTypeFilter = activeWorkType, userFilter = activeUser, designationFilter = activeDesignation, trackerFilter = activeTracker, projectFilter = activeProject, clientFilter = activeClient) => {
         setActiveFilter(filter);
-        const params = { filter };
+        const params = { filter, perPage: selectedPerPage };
         if (filter === 'custom') {
             if (customStartDate && customEndDate) {
                 params.startDate = customStartDate.toISOString().slice(0, 10);
@@ -235,6 +271,33 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, activeTracker, activeProject, client);
     };
 
+    const handlePerPageChange = (newPerPage) => {
+        setSelectedPerPage(newPerPage);
+        const params = {
+            filter: activeFilter,
+            perPage: newPerPage
+        };
+        
+        // Preserve all current filter parameters
+        if (activeFilter === 'custom' && customStartDate && customEndDate) {
+            params.startDate = customStartDate.toISOString().slice(0, 10);
+            params.endDate = customEndDate.toISOString().slice(0, 10);
+        } else if (activeFilter !== 'all') {
+            const { start, end } = getDateRange(activeFilter);
+            params.startDate = start;
+            params.endDate = end;
+        }
+        
+        if (activeWorkType !== 'all') params.workType = activeWorkType;
+        if (activeUser !== 'all') params.userId = activeUser;
+        if (activeDesignation !== 'all') params.designation = activeDesignation;
+        if (activeTracker !== 'all') params.tracker = activeTracker;
+        if (activeProject !== 'all') params.project = activeProject;
+        if (activeClient !== 'all') params.client = activeClient;
+        
+        router.get(route('work-hours.report'), params);
+    };
+
     return (
         <AuthenticatedLayout 
             user={auth.user} 
@@ -271,7 +334,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
             )}
             <div className="py-12 min-h-screen">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white/10 backdrop-blur-xl overflow-hidden shadow-2xl sm:rounded-2xl border border-white/20">
+                    <div className="bg-white/10 backdrop-blur-xl shadow-2xl sm:rounded-2xl border border-white/20">
                         <div className="p-8 text-white">
                             <div className="flex justify-between items-center mb-8">
                                 <div>
@@ -280,19 +343,37 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     </h1>
                                     <p className="text-gray-300 mt-2">Comprehensive analysis of work hours and productivity</p>
                                 </div>
-                                <button
-                                    onClick={exportToCSV}
-                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-xl"
-                                >
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Export to CSV
-                                </button>
+                                <div className="flex items-center gap-4">
+                                    {/* Per Page Selector */}
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-white/70 text-sm font-medium">Show:</label>
+                                        <select 
+                                            value={selectedPerPage} 
+                                            onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
+                                            className="px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white text-sm"
+                                        >
+                                            <option value={15} className="bg-slate-800 text-white">15</option>
+                                            <option value={25} className="bg-slate-800 text-white">25</option>
+                                            <option value={50} className="bg-slate-800 text-white">50</option>
+                                            <option value={100} className="bg-slate-800 text-white">100</option>
+                                        </select>
+                                        <span className="text-white/70 text-sm">entries</span>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={exportToCSV}
+                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-xl"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Export to CSV
+                                    </button>
+                                </div>
                             </div>
                             <div className="mb-6 space-y-4">
                                 {/* Main Filters Row */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 relative">
                                     {/* Date Range Filter */}
                                     <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
                                         <h3 className="text-sm font-semibold text-white mb-3">Filter by Date Range</h3>
@@ -329,73 +410,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* User Filter */}
-                                    <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
-                                        <h3 className="text-sm font-semibold text-white mb-3">Filter by User</h3>
-                                        <div className="relative w-full" ref={userDropdownRef}>
-                                            <button
-                                                type="button"
-                                                className="w-full px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm text-white text-left flex items-center justify-between hover:bg-white/20 transition-colors"
-                                                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                                            >
-                                                <span className="truncate">{getSelectedUserName()}</span>
-                                                <svg 
-                                                    className={`w-4 h-4 transition-transform text-gray-300 ${userDropdownOpen ? 'rotate-180' : ''}`} 
-                                                    fill="none" 
-                                                    stroke="currentColor" 
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </button>
-                                            
-                                            {userDropdownOpen && (
-                                                <div className="absolute z-50 w-full mt-1 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl max-h-60 overflow-hidden">
-                                                    <div className="p-2 border-b border-white/20">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Search users..."
-                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
-                                                            value={userSearchTerm}
-                                                            onChange={(e) => setUserSearchTerm(e.target.value)}
-                                                            autoFocus
-                                                        />
-                                                    </div>
-                                                    <div className="max-h-48 overflow-y-auto">
-                                                        <div
-                                                            className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${activeUser === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'text-white'}`}
-                                                            onClick={() => handleUserFilter('all')}
-                                                        >
-                                                            {activeUser === 'all' && (
-                                                                <svg className="w-4 h-4 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                </svg>
-                                                            )}
-                                                            All Users
-                                                        </div>
-                                                        {filteredUsers.map(user => (
-                                                            <div
-                                                                key={user.id}
-                                                                className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${activeUser == user.id ? 'bg-white/20 text-blue-300 font-medium' : 'text-white'}`}
-                                                                onClick={() => handleUserFilter(user.id)}
-                                                            >
-                                                                {activeUser == user.id && (
-                                                                    <svg className="w-4 h-4 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                )}
-                                                                <span className="truncate">{user.name}</span>
-                                                            </div>
-                                                        ))}
-                                                        {filteredUsers.length === 0 && userSearchTerm && (
-                                                            <div className="px-4 py-2 text-gray-400 text-sm">No users found</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
                                 </div>
 
                                 {/* Advanced Filters Toggle */}
@@ -429,7 +443,52 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                         </div>
 
                                         {/* Secondary Filters Grid */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                            {/* User Filter */}
+                                            <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                                <h3 className="text-sm font-semibold text-white mb-3">Filter by User</h3>
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search users..."
+                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
+                                                            value={userSearchTerm}
+                                                            onChange={(e) => {
+                                                                setUserSearchTerm(e.target.value);
+                                                                setUserPage(1); // Reset to first page when searching
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-32 overflow-y-auto space-y-1">
+                                                        <button 
+                                                            onClick={() => handleUserFilter('all')} 
+                                                            className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeUser === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
+                                                        >
+                                                            All Users
+                                                        </button>
+                                                        {paginatedUsers.map(user => (
+                                                            <button 
+                                                                key={user.id} 
+                                                                onClick={() => handleUserFilter(user.id)} 
+                                                                className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeUser == user.id ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
+                                                                title={user.name}
+                                                            >
+                                                                {user.name}
+                                                            </button>
+                                                        ))}
+                                                        {filteredUsers.length === 0 && userSearchTerm && (
+                                                            <div className="px-3 py-2 text-gray-400 text-sm">No users found</div>
+                                                        )}
+                                                    </div>
+                                                    <FilterPagination 
+                                                        currentPage={userPage}
+                                                        totalPages={totalUserPages}
+                                                        onPageChange={setUserPage}
+                                                    />
+                                                </div>
+                                            </div>
+
                                             {/* Designation Filter */}
                                             <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
                                                 <h3 className="text-sm font-semibold text-white mb-3">Filter by Designation</h3>
@@ -512,7 +571,10 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                             placeholder="Search projects..."
                                                             className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                             value={projectSearch}
-                                                            onChange={(e) => setProjectSearch(e.target.value)}
+                                                            onChange={(e) => {
+                                                                setProjectSearch(e.target.value);
+                                                                setProjectPage(1); // Reset to first page when searching
+                                                            }}
                                                         />
                                                     </div>
                                                     <div className="max-h-32 overflow-y-auto space-y-1">
@@ -522,9 +584,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                         >
                                                             All Projects
                                                         </button>
-                                                        {getUniqueProjects()
-                                                            .filter(project => project.toLowerCase().includes(projectSearch.toLowerCase()))
-                                                            .map(project => (
+                                                        {paginatedProjects.map(project => (
                                                             <button 
                                                                 key={project} 
                                                                 onClick={() => handleProjectFilter(project)} 
@@ -534,7 +594,15 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                                 {project}
                                                             </button>
                                                         ))}
+                                                        {filteredProjects.length === 0 && projectSearch && (
+                                                            <div className="px-3 py-2 text-gray-400 text-sm">No projects found</div>
+                                                        )}
                                                     </div>
+                                                    <FilterPagination 
+                                                        currentPage={projectPage}
+                                                        totalPages={totalProjectPages}
+                                                        onPageChange={setProjectPage}
+                                                    />
                                                 </div>
                                             </div>
 
@@ -548,7 +616,10 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                             placeholder="Search clients..."
                                                             className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
                                                             value={clientSearch}
-                                                            onChange={(e) => setClientSearch(e.target.value)}
+                                                            onChange={(e) => {
+                                                                setClientSearch(e.target.value);
+                                                                setClientPage(1); // Reset to first page when searching
+                                                            }}
                                                         />
                                                     </div>
                                                     <div className="max-h-32 overflow-y-auto space-y-1">
@@ -558,9 +629,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                         >
                                                             All Clients
                                                         </button>
-                                                        {getUniqueClients()
-                                                            .filter(client => client.toLowerCase().includes(clientSearch.toLowerCase()))
-                                                            .map(client => (
+                                                        {paginatedClients.map(client => (
                                                             <button 
                                                                 key={client} 
                                                                 onClick={() => handleClientFilter(client)} 
@@ -570,7 +639,15 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                                 {client}
                                                             </button>
                                                         ))}
+                                                        {filteredClients.length === 0 && clientSearch && (
+                                                            <div className="px-3 py-2 text-gray-400 text-sm">No clients found</div>
+                                                        )}
                                                     </div>
+                                                    <FilterPagination 
+                                                        currentPage={clientPage}
+                                                        totalPages={totalClientPages}
+                                                        onPageChange={setClientPage}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -594,7 +671,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             )}
                                             {activeUser !== 'all' && (
                                                 <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg backdrop-blur-xl border border-blue-400/20">
-                                                    User: {getSelectedUserName()}
+                                                    User: {users.find(u => u.id == activeUser)?.name || 'Unknown User'}
                                                 </span>
                                             )}
                                             {activeDesignation !== 'all' && (
@@ -629,7 +706,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                 setActiveClient('all');
                                                 setCustomStartDate(null);
                                                 setCustomEndDate(null);
-                                                router.get(route('work-hours.report'));
+                                                router.get(route('work-hours.report'), { perPage: selectedPerPage });
                                             }}
                                             className="mt-3 inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-all text-xs backdrop-blur-xl"
                                         >
@@ -654,11 +731,11 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
                                             <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
-                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-xl">Actions</th>
+                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-xl border-l border-white/10">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white/5 divide-y divide-white/10 backdrop-blur-xl">
-                                        {workHours.map((entry, index) => (
+                                        {workHours?.data?.length ? workHours.data.map((entry, index) => (
                                             <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white/5' : 'bg-white/10'} hover:bg-white/20 transition-colors backdrop-blur-xl`}>
                                                 <td className="px-6 py-4 text-sm text-white truncate font-medium">{entry.user.name}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-300 truncate">{entry.user.designation || '-'}</td>
@@ -672,8 +749,28 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                 <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.project?.name || 'No Project'}>{entry.project?.name || 'No Project'}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-300 truncate" title={entry.project?.client?.name || 'No Client'}>{entry.project?.client?.name || 'No Client'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-400">{timeFormat(entry.hours)}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-300 max-w-xs truncate" title={entry.description}>{entry.description}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white/5 backdrop-blur-xl">
+                                                <td className="px-6 py-4 text-sm text-gray-300 relative group">
+                                                    <div className="max-w-xs truncate">
+                                                        {entry.description && entry.description.length > 50 ? (
+                                                            <>
+                                                                <span className="truncate block">{entry.description.substring(0, 50)}...</span>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(entry.description);
+                                                                        setToast('Description copied to clipboard!');
+                                                                    }}
+                                                                    className="mt-1 text-xs bg-white/10 hover:bg-white/20 text-white/80 px-2 py-1 rounded transition-all"
+                                                                    title="Copy full description"
+                                                                >
+                                                                    Copy Full Text
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <span className="block">{entry.description}</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg">
                                                     <div className="flex space-x-2">
                                                         <Link 
                                                             href={route('work-hours.edit', entry.id)} 
@@ -690,20 +787,44 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={10} className="px-6 py-8 text-center text-white/60">
+                                                    <div className="flex flex-col items-center">
+                                                        <svg className="w-12 h-12 text-white/40 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                        <p className="text-lg font-medium mb-1">No work hour entries found</p>
+                                                        <p className="text-sm">Try adjusting your filters or date range</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
-                                <tfoot className="bg-white/10 backdrop-blur-xl border-t border-white/20">
+                                <tfoot className="bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-t border-white/20">
                                     <tr>
                                         <td colSpan={7} className="px-6 py-4"></td>
                                         <td className="px-6 py-4 font-bold text-right text-blue-300 text-lg">
-                                            Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
+                                            Total: {timeFormat(workHours?.data?.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2) || 0)}
                                         </td>
                                         <td className="px-6 py-4"></td>
-                                        <td className="w-32 px-6 py-4 sticky right-0 bg-white/10 backdrop-blur-xl"></td>
+                                        <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10"></td>
                                     </tr>
                                 </tfoot>
                                 </table>
                             </div>
+                            
+                            {/* Pagination Controls */}
+                            {workHours?.data?.length > 0 && (
+                                <div className="mt-6 p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20">
+                                    <TraditionalPagination 
+                                        pagination={workHours}
+                                        className="justify-between items-center"
+                                        preserveState={true}
+                                        preserveScroll={false}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

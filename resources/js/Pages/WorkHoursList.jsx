@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import AuthenticatedLayout from '../Layouts/AuthenticatedLayout';
 import AnimatedBackground from '../Components/AnimatedBackground';
+import { TraditionalPagination } from '../Components/Pagination';
 import { Head, Link, router } from '@inertiajs/react';
 import { timeFormat } from '../helpers';
 
@@ -38,7 +39,25 @@ const getDateRange = (filter) => {
     return { start, end };
 };
 
-export default function WorkHoursList({ auth, workHours, flash, filter = 'all', startDate = '', endDate = '', workType = 'all', tracker = 'all', project = 'all', client = 'all' }) {
+export default function WorkHoursList({ auth, workHours, flash, filter = 'all', startDate = '', endDate = '', workType = 'all', tracker = 'all', project = 'all', client = 'all', perPage = 15 }) {
+    // If workHours is not available or malformed, show loading state
+    if (!workHours || typeof workHours !== 'object') {
+        return (
+            <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-slate-100 leading-tight">Work Hours</h2>}>
+                <Head title="Work Hours" />
+                <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{background: '#282a2a'}}>
+                    <AnimatedBackground />
+                </div>
+                <div className="py-12 min-h-screen relative z-10 flex items-center justify-center">
+                    <div className="text-white text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                        <p>Loading work hours...</p>
+                    </div>
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
+    
     const [deleteId, setDeleteId] = useState(null);
     const [toast, setToast] = useState(flash?.success || flash?.error || '');
     const [toastType, setToastType] = useState(flash?.success ? 'success' : 'error');
@@ -47,6 +66,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
     const [activeTracker, setActiveTracker] = useState(tracker);
     const [activeProject, setActiveProject] = useState(project);
     const [activeClient, setActiveClient] = useState(client);
+    const [activePerPage, setActivePerPage] = useState(perPage);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
 
@@ -97,9 +117,10 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
         return workTypeMap[workType] || workType;
     };
 
-    // Helper to get unique values for filters
+    // Helper to get unique values for filters - work with paginated data
     const getUniqueTrackers = () => {
-        const trackers = [...new Set(workHours.map(entry => entry.tracker).filter(Boolean))];
+        if (!workHours?.data || !Array.isArray(workHours.data)) return [];
+        const trackers = [...new Set(workHours.data.map(entry => entry.tracker).filter(Boolean))];
         return trackers.sort();
     };
 
@@ -113,12 +134,14 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
     };
 
     const getUniqueProjects = () => {
-        const projects = [...new Set(workHours.map(entry => entry.project?.name).filter(Boolean))];
+        if (!workHours?.data || !Array.isArray(workHours.data)) return [];
+        const projects = [...new Set(workHours.data.map(entry => entry.project?.name).filter(Boolean))];
         return projects.sort();
     };
 
     const getUniqueClients = () => {
-        const clients = [...new Set(workHours.map(entry => entry.project?.client?.name).filter(Boolean))];
+        if (!workHours?.data || !Array.isArray(workHours.data)) return [];
+        const clients = [...new Set(workHours.data.map(entry => entry.project?.client?.name).filter(Boolean))];
         return clients.sort();
     };
 
@@ -135,7 +158,13 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
     };
 
     const exportToCSV = () => {
-        const data = workHours.map(entry => ({
+        if (!workHours?.data || !Array.isArray(workHours.data)) {
+            setToast('No data available to export.');
+            setToastType('error');
+            return;
+        }
+        
+        const data = workHours.data.map(entry => ({
             ID: entry.id,
             'Work Type': formatWorkType(entry.work_type),
             Tracker: entry.tracker,
@@ -216,6 +245,11 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
             params.client = clientFilter;
         }
         
+        // Add perPage parameter
+        if (activePerPage && activePerPage !== 15) {
+            params.perPage = activePerPage;
+        }
+        
         // Navigate with filters or to base route if no filters
         if (Object.keys(params).length === 0) {
             router.get(route('work-hours.index'));
@@ -245,6 +279,50 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
         setActiveClient(client);
         setClientSearch(''); // Clear search after selection
         handleFilter(activeFilter, activeWorkType, activeTracker, activeProject, client);
+    };
+
+    const handlePerPageChange = (newPerPage) => {
+        setActivePerPage(newPerPage);
+        
+        const params = {};
+        
+        // Add current filters
+        if (activeFilter !== 'all') {
+            if (activeFilter === 'custom') {
+                if (customStartDate && customEndDate) {
+                    params.filter = 'custom';
+                    params.startDate = customStartDate.toISOString().slice(0, 10);
+                    params.endDate = customEndDate.toISOString().slice(0, 10);
+                }
+            } else {
+                const dateRange = getDateRange(activeFilter);
+                params.filter = activeFilter;
+                params.startDate = dateRange.start;
+                params.endDate = dateRange.end;
+            }
+        }
+        
+        if (activeWorkType && activeWorkType !== 'all') {
+            params.workType = activeWorkType;
+        }
+        if (activeTracker && activeTracker !== 'all') {
+            params.tracker = activeTracker;
+        }
+        if (activeProject && activeProject !== 'all') {
+            params.project = activeProject;
+        }
+        if (activeClient && activeClient !== 'all') {
+            params.client = activeClient;
+        }
+        
+        // Add perPage parameter
+        params.perPage = newPerPage;
+        
+        router.visit(route('work-hours.index'), {
+            data: params,
+            preserveScroll: true,
+            preserveState: true,
+        });
     };
 
     return (
@@ -308,6 +386,19 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                     </svg>
                                     Export to CSV
                                 </button>
+                                <div className="flex items-center gap-2 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-xl px-4 py-2 border border-white/20">
+                                    <span className="text-white text-sm font-medium">Show:</span>
+                                    <select
+                                        value={activePerPage}
+                                        onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
+                                        className="bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value={15} className="bg-slate-800 text-white">15 entries</option>
+                                        <option value={25} className="bg-slate-800 text-white">25 entries</option>
+                                        <option value={50} className="bg-slate-800 text-white">50 entries</option>
+                                        <option value={100} className="bg-slate-800 text-white">100 entries</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -667,11 +758,11 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                     <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
                                                     <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
                                                     <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
-                                                    <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 backdrop-blur-xl">Actions</th>
+                                                    <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {workHours.length === 0 ? (
+                                                {!workHours?.data || !Array.isArray(workHours.data) || workHours.data.length === 0 ? (
                                                     <tr>
                                                         <td colSpan={9} className="px-6 py-12 text-center">
                                                             <div className="flex flex-col items-center">
@@ -693,7 +784,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                workHours.map((entry, index) => (
+                                                workHours.data.map((entry, index) => (
                                                     <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white/5' : 'bg-white/10'} hover:bg-white/20 transition-all duration-200`}>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-400">{entry.id}</td>
                                                         {getUserRoleContext().showUserColumn && (
@@ -713,13 +804,33 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                         <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.project?.name}>{entry.project?.name}</td>
                                                         <td className="px-6 py-4 text-sm text-white/70 truncate" title={entry.project?.client?.name}>{entry.project?.client?.name}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-400">{timeFormat(entry.hours)}</td>
-                                                        <td className="px-6 py-4 text-sm text-white/80 max-w-xs truncate" title={entry.description}>{entry.description}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white sticky right-0 bg-white/10 backdrop-blur-xl">
+                                                        <td className="px-6 py-4 text-sm text-white/80 max-w-xs" title={entry.description}>
+                                                            <div className="truncate">
+                                                                {entry.description && entry.description.length > 50 ? (
+                                                                    <span>
+                                                                        {entry.description.substring(0, 50)}...
+                                                                        <button 
+                                                                            className="ml-1 text-blue-400 hover:text-blue-300 text-xs underline"
+                                                                            onClick={() => {
+                                                                                navigator.clipboard.writeText(entry.description);
+                                                                                setToast('Description copied to clipboard!');
+                                                                                setToastType('success');
+                                                                            }}
+                                                                        >
+                                                                            copy
+                                                                        </button>
+                                                                    </span>
+                                                                ) : (
+                                                                    entry.description
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg">
                                                             <div className="flex space-x-2">
-                                                                <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-medium rounded-md transition-all">
+                                                                <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-medium rounded-md transition-all shadow-md hover:shadow-lg">
                                                                     Edit
                                                                 </Link>
-                                                                <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-medium rounded-md transition-all">
+                                                                <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-medium rounded-md transition-all shadow-md hover:shadow-lg">
                                                                     Delete
                                                                 </button>
                                                             </div>
@@ -727,20 +838,40 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                     </tr>
                                                 )))}
                                             </tbody>
-                                            {workHours.length > 0 && (
+                                            {workHours?.data && Array.isArray(workHours.data) && workHours.data.length > 0 && (
                                             <tfoot className="bg-gradient-to-r from-white/5 to-green-500/20 backdrop-blur-xl">
                                                 <tr>
                                                     <td colSpan={6} className="px-6 py-4"></td>
                                                     <td className="px-6 py-4 font-bold text-right text-green-400 text-lg">
-                                                        Total: {timeFormat(workHours.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
+                                                        Total: {timeFormat(workHours.data.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                                     </td>
                                                     <td className="px-6 py-4"></td>
-                                                    <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-white/5 to-green-500/20 backdrop-blur-xl"></td>
+                                                    <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg"></td>
                                                 </tr>
                                             </tfoot>
                                             )}
                                         </table>
                                     </div>
+                                
+                                    {/* Traditional Pagination */}
+                                    {workHours?.data && Array.isArray(workHours.data) && workHours.data.length > 0 && (
+                                        <div className="mt-6 pt-6 border-t border-white/10">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div className="text-white/70 text-sm">
+                                                    Showing {workHours.from || 0} to {workHours.to || 0} of {workHours.total || 0} entries
+                                                </div>
+                                                <div className="text-white/70 text-sm">
+                                                    {activePerPage} entries per page
+                                                </div>
+                                            </div>
+                                            <TraditionalPagination 
+                                                pagination={workHours}
+                                                preserveState={true}
+                                                preserveScroll={false}
+                                                className="pagination-controls"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

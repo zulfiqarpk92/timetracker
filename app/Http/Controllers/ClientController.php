@@ -9,11 +9,34 @@ use Inertia\Inertia;
 
 class ClientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $clients = Client::withCount('projects')->orderBy('name')->get();
+        $perPage = $request->get('perPage', 10);
+        $search = $request->get('search', '');
+        
+        // Validate perPage to ensure it's within reasonable limits
+        if (!in_array($perPage, [10, 25, 50, 100])) {
+            $perPage = 10;
+        }
+        
+        $query = Client::withCount('projects')->orderBy('name');
+        
+        // Apply search filter if search term is provided
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhereJsonContains('tags', $search)
+                  ->orWhere('tags', 'like', '%' . $search . '%');
+            });
+        }
+        
+        $clients = $query->paginate($perPage)->appends($request->query());
+            
         return Inertia::render('ClientsList', [
             'clients' => $clients,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 
@@ -26,6 +49,8 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
         ]);
         Client::create($validated);
         return redirect()->route('clients.index')->with('success', 'Client created.');
@@ -42,6 +67,8 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
         ]);
         $client->update($validated);
         return redirect()->route('clients.index')->with('success', 'Client updated.');

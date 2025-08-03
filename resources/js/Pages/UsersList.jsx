@@ -4,6 +4,7 @@ import AuthenticatedLayout from "../Layouts/AuthenticatedLayout";
 import AnimatedBackground from "../Components/AnimatedBackground";
 import { Head, Link, router } from "@inertiajs/react";
 import Avatar from "../Components/Avatar";
+import { TraditionalPagination } from '../Components/Pagination';
 
 function Toast({ message, onClose }) {
     if (!message) return null;
@@ -18,6 +19,7 @@ function Toast({ message, onClose }) {
 export default function UsersList({ auth, users, flash }) {
     const [deleteId, setDeleteId] = useState(null);
     const [toast, setToast] = useState(flash?.success || "");
+    const [selectedPerPage, setSelectedPerPage] = useState(10);
     
     // Filter states
     const [searchTerm, setSearchTerm] = useState("");
@@ -77,15 +79,15 @@ export default function UsersList({ auth, users, flash }) {
 
     // Get unique designations from users
     const getUniqueDesignations = () => {
-        const designations = users
-            .map(user => user.designation)
-            .filter(designation => designation && designation.trim() !== "");
+        const designations = users?.data
+            ? users.data.map(user => user.designation).filter(designation => designation && designation.trim() !== "")
+            : [];
         return [...new Set(designations)].sort();
     };
 
     // Get unique roles from users
     const getUniqueRoles = () => {
-        const roles = users.map(user => user.role);
+        const roles = users?.data ? users.data.map(user => user.role) : [];
         return [...new Set(roles)].sort();
     };
 
@@ -118,7 +120,7 @@ export default function UsersList({ auth, users, flash }) {
     };
 
     // Filter users based on search criteria
-    const filteredUsers = users.filter(user => {
+    const filteredUsers = users?.data ? users.data.filter(user => {
         const matchesName = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            user.email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDesignation = selectedDesignation === "all" || 
@@ -127,7 +129,7 @@ export default function UsersList({ auth, users, flash }) {
         const matchesRole = selectedRole === "all" || user.role === selectedRole;
         
         return matchesName && matchesDesignation && matchesRole;
-    });
+    }) : [];
 
     const handleDelete = (id) => {
         setDeleteId(id);
@@ -148,6 +150,11 @@ export default function UsersList({ auth, users, flash }) {
     };
 
     const closeToast = () => setToast("");
+
+    const handlePerPageChange = (newPerPage) => {
+        setSelectedPerPage(newPerPage);
+        router.get(route('users.index'), { perPage: newPerPage });
+    };
 
     return (
         <AuthenticatedLayout
@@ -206,15 +213,33 @@ export default function UsersList({ auth, users, flash }) {
                                     </h1>
                                     <p className="text-white/70 mt-2 text-lg">Manage user accounts and permissions</p>
                                 </div>
-                                <Link
-                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
-                                    href={route("users.create")}
-                                >
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Add User
-                                </Link>
+                                <div className="flex items-center gap-4">
+                                    {/* Per Page Selector */}
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-white/70 text-sm font-medium">Show:</label>
+                                        <select 
+                                            value={selectedPerPage} 
+                                            onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
+                                            className="px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white text-sm"
+                                        >
+                                            <option value={10} className="bg-slate-800 text-white">10</option>
+                                            <option value={25} className="bg-slate-800 text-white">25</option>
+                                            <option value={50} className="bg-slate-800 text-white">50</option>
+                                            <option value={100} className="bg-slate-800 text-white">100</option>
+                                        </select>
+                                        <span className="text-white/70 text-sm">entries</span>
+                                    </div>
+                                    
+                                    <Link
+                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
+                                        href={route("users.create")}
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Add User
+                                    </Link>
+                                </div>
                             </div>
 
                             {/* Filters Section */}
@@ -407,7 +432,7 @@ export default function UsersList({ auth, users, flash }) {
                                 {/* Results Summary */}
                                 <div className="flex justify-between items-center text-sm text-white/80 bg-white/10 backdrop-blur-xl px-4 py-3 rounded-xl border border-white/20">
                                     <span>
-                                        Showing {filteredUsers.length} of {users.length} users
+                                        Showing {filteredUsers.length} of {users?.total || 0} users
                                         {searchTerm && ` matching "${searchTerm}"`}
                                         {selectedDesignation !== "all" && ` with designation "${selectedDesignation === "no_designation" ? "No Designation" : selectedDesignation}"`}
                                         {selectedRole !== "all" && ` with role "${selectedRole}"`}
@@ -532,6 +557,18 @@ export default function UsersList({ auth, users, flash }) {
                                     </tbody>
                                 </table>
                             </div>
+                            
+                            {/* Pagination Controls */}
+                            {users?.data && users.data.length > 0 && (
+                                <div className="mt-6 p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20">
+                                    <TraditionalPagination 
+                                        pagination={users}
+                                        className="justify-between items-center"
+                                        preserveState={true}
+                                        preserveScroll={false}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

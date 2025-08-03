@@ -33,6 +33,13 @@ class WorkHourController extends Controller
         $tracker = $request->input('tracker', 'all');
         $project = $request->input('project', 'all');
         $client = $request->input('client', 'all');
+        $perPage = $request->input('perPage', 15);
+        
+        // Validate perPage to prevent abuse
+        $allowedPerPage = [15, 25, 50, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
         
         // Apply date filter
         if ($filter !== 'all' && $startDate && $endDate) {
@@ -63,7 +70,11 @@ class WorkHourController extends Controller
             });
         }
         
-        $workHours = $query->orderByDesc('date')->get();
+        // Implement pagination with dynamic per page
+        $workHours = $query->orderByDesc('date')->orderByDesc('id')->paginate($perPage);
+        
+        // Preserve query parameters in pagination links
+        $workHours->appends($request->query());
         
         return Inertia::render('WorkHoursList', [
             'workHours' => $workHours,
@@ -74,6 +85,7 @@ class WorkHourController extends Controller
             'tracker' => $tracker,
             'project' => $project,
             'client' => $client,
+            'perPage' => $perPage,
             'flash' => [
                 'success' => $request->session()->get('success') ?? '',
                 'error' => $request->session()->get('error') ?? ''
@@ -161,6 +173,13 @@ class WorkHourController extends Controller
         $tracker = $request->input('tracker', 'all');
         $project = $request->input('project', 'all');
         $client = $request->input('client', 'all');
+        $perPage = $request->input('perPage', 15);
+        
+        // Validate perPage to prevent abuse
+        $allowedPerPage = [15, 25, 50, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
         
         // Apply date filter
         if ($filter !== 'all' && $startDate && $endDate) {
@@ -203,7 +222,12 @@ class WorkHourController extends Controller
             });
         }
         
-        $workHours = $query->orderByDesc('date')->get();
+        // Implement pagination with dynamic per page
+        $workHours = $query->orderByDesc('date')->orderByDesc('id')->paginate($perPage);
+        
+        // Preserve query parameters in pagination links
+        $workHours->appends($request->query());
+        
         $users = \App\Models\User::orderBy('name')->get(['id', 'name']);
         
         return Inertia::render('WorkHoursReport', [
@@ -218,6 +242,7 @@ class WorkHourController extends Controller
             'tracker' => $tracker,
             'project' => $project,
             'client' => $client,
+            'perPage' => $perPage,
         ]);
     }
 }
