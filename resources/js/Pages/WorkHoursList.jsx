@@ -29,17 +29,30 @@ const getDateRange = (filter) => {
     if (filter === 'today') {
         start = end = today.toISOString().slice(0, 10);
     } else if (filter === 'week') {
-        const first = today.getDate() - today.getDay();
-        start = new Date(today.setDate(first)).toISOString().slice(0, 10);
-        end = new Date().toISOString().slice(0, 10);
+        // Get Monday as the first day of the current week
+        const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If Sunday, Monday was 6 days ago
+        
+        // Calculate Monday of current week using local date methods
+        const monday = new Date(today);
+        monday.setDate(monday.getDate() - daysFromMonday);
+        
+        // Calculate Sunday of current week (6 days after Monday)
+        const sunday = new Date(monday);
+        sunday.setDate(sunday.getDate() + 6);
+        
+        start = monday.toISOString().slice(0, 10);
+        end = sunday.toISOString().slice(0, 10);
     } else if (filter === 'month') {
+        // First day of current month
         start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-        end = new Date().toISOString().slice(0, 10);
+        // Last day of current month
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
     }
     return { start, end };
 };
 
-export default function WorkHoursList({ auth, workHours, flash, filter = 'all', startDate = '', endDate = '', workType = 'all', tracker = 'all', project = 'all', client = 'all', perPage = 15 }) {
+export default function WorkHoursList({ auth, workHours, flash, filter = 'week', startDate = '', endDate = '', workType = 'all', tracker = 'all', project = 'all', client = 'all', perPage = 15 }) {
     // If workHours is not available or malformed, show loading state
     if (!workHours || typeof workHours !== 'object') {
         return (
@@ -252,32 +265,60 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
         
         // Navigate with filters or to base route if no filters
         if (Object.keys(params).length === 0) {
-            router.get(route('work-hours.index'));
+            router.get(route('work-hours.index'), {}, {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['workHours', 'flash']
+            });
         } else {
-            router.get(route('work-hours.index'), params);
+            router.get(route('work-hours.index'), params, {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['workHours', 'flash']
+            });
         }
     };
 
     const handleWorkTypeFilter = (type) => {
         setActiveWorkType(type);
+        // Close the expanded filter after selection
+        setExpandedFilters(prev => ({
+            ...prev,
+            workType: false
+        }));
         handleFilter(activeFilter, type, activeTracker, activeProject, activeClient);
     };
 
     const handleTrackerFilter = (tracker) => {
         setActiveTracker(tracker);
         setTrackerSearch(''); // Clear search after selection
+        // Close the expanded filter after selection
+        setExpandedFilters(prev => ({
+            ...prev,
+            tracker: false
+        }));
         handleFilter(activeFilter, activeWorkType, tracker, activeProject, activeClient);
     };
 
     const handleProjectFilter = (project) => {
         setActiveProject(project);
         setProjectSearch(''); // Clear search after selection
+        // Close the expanded filter after selection
+        setExpandedFilters(prev => ({
+            ...prev,
+            project: false
+        }));
         handleFilter(activeFilter, activeWorkType, activeTracker, project, activeClient);
     };
 
     const handleClientFilter = (client) => {
         setActiveClient(client);
         setClientSearch(''); // Clear search after selection
+        // Close the expanded filter after selection
+        setExpandedFilters(prev => ({
+            ...prev,
+            client: false
+        }));
         handleFilter(activeFilter, activeWorkType, activeTracker, activeProject, client);
     };
 
@@ -322,12 +363,59 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
             data: params,
             preserveScroll: true,
             preserveState: true,
+            only: ['workHours', 'flash']
         });
     };
 
     return (
         <AuthenticatedLayout user={auth.user} header={<h2 className="font-semibold text-xl text-slate-100 leading-tight">Work Hours</h2>}>
             <Head title="Work Hours" />
+            
+            {/* Custom DatePicker Styles */}
+            <style jsx global>{`
+                .react-datepicker-wrapper {
+                    z-index: 99999 !important;
+                    position: relative !important;
+                }
+                .react-datepicker-popper {
+                    z-index: 99999 !important;
+                    position: fixed !important;
+                }
+                .react-datepicker {
+                    z-index: 99999 !important;
+                    background-color: white !important;
+                    border: 1px solid #d1d5db !important;
+                    border-radius: 0.5rem !important;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+                    position: relative !important;
+                }
+                .react-datepicker__header {
+                    background-color: #f3f4f6 !important;
+                    border-bottom: 1px solid #d1d5db !important;
+                    border-top-left-radius: 0.5rem !important;
+                    border-top-right-radius: 0.5rem !important;
+                }
+                .react-datepicker__current-month,
+                .react-datepicker__day-name,
+                .react-datepicker__day {
+                    color: #1f2937 !important;
+                }
+                .react-datepicker__day:hover {
+                    background-color: #3b82f6 !important;
+                    color: white !important;
+                }
+                .react-datepicker__day--selected {
+                    background-color: #3b82f6 !important;
+                    color: white !important;
+                }
+                .react-datepicker__day--today {
+                    background-color: #fef3c7 !important;
+                    color: #92400e !important;
+                }
+                .react-datepicker__triangle {
+                    display: none !important;
+                }
+            `}</style>
             
             {/* Animated Background */}
             <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{background: '#282a2a'}}>
@@ -366,7 +454,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
                                     </svg>
-                                    {showFilters ? 'Hide Filters' : 'Show Filters'}
+                                    {showFilters ? 'Hide Additional Filters' : 'Show Additional Filters'}
                                 </button>
                                 <Link 
                                     className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl" 
@@ -403,12 +491,121 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                         </div>
                     </div>
 
-                    {/* Filters Section - Outside main content */}
+                    {/* Date Range Filter - Always Visible */}
+                    <div className="mb-6">
+                        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-semibold text-white">Date Range</h2>
+                            </div>
+
+                            <div className="flex gap-3 flex-wrap items-center">
+                                <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'}`}>All Dates</button>
+                                <button onClick={() => handleFilter('today')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'today' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'}`}>Today</button>
+                                <button onClick={() => handleFilter('week')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'week' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'}`}>This Week</button>
+                                <button onClick={() => handleFilter('month')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'month' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'}`}>This Month</button>
+                                <button onClick={() => handleFilter('custom')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'custom' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'}`}>Custom Range</button>
+                                
+                                {activeFilter === 'custom' && (
+                                    <>
+                                        <div className="flex items-center gap-2 ml-4">
+                                            <span className="text-white font-medium">From:</span>
+                                            <div className="relative z-[99999]">
+                                                <DatePicker
+                                                    selected={customStartDate}
+                                                    onChange={date => setCustomStartDate(date)}
+                                                    dateFormat="yyyy-MM-dd"
+                                                    maxDate={customEndDate || undefined}
+                                                    className="px-3 py-2 bg-white/10 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-xl"
+                                                    placeholderText="Start date"
+                                                    popperClassName="!z-[99999]"
+                                                    calendarClassName="bg-white border border-gray-300 rounded-lg shadow-lg"
+                                                    wrapperClassName="relative z-[99999]"
+                                                    popperPlacement="bottom-start"
+                                                    popperModifiers={[
+                                                        {
+                                                            name: 'offset',
+                                                            options: {
+                                                                offset: [0, 5],
+                                                            },
+                                                        },
+                                                        {
+                                                            name: 'preventOverflow',
+                                                            options: {
+                                                                rootBoundary: 'viewport',
+                                                                tether: false,
+                                                                altAxis: true,
+                                                            },
+                                                        },
+                                                    ]}
+                                                />
+                                            </div>
+                                            <span className="text-white font-medium">To:</span>
+                                            <div className="relative z-[99999]">
+                                                <DatePicker
+                                                    selected={customEndDate}
+                                                    onChange={date => setCustomEndDate(date)}
+                                                    dateFormat="yyyy-MM-dd"
+                                                    minDate={customStartDate || undefined}
+                                                    className="px-3 py-2 bg-white/10 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-xl"
+                                                    placeholderText="End date"
+                                                    popperClassName="!z-[99999]"
+                                                    calendarClassName="bg-white border border-gray-300 rounded-lg shadow-lg"
+                                                    wrapperClassName="relative z-[99999]"
+                                                    popperPlacement="bottom-start"
+                                                    popperModifiers={[
+                                                        {
+                                                            name: 'offset',
+                                                            options: {
+                                                                offset: [0, 5],
+                                                            },
+                                                        },
+                                                        {
+                                                            name: 'preventOverflow',
+                                                            options: {
+                                                                rootBoundary: 'viewport',
+                                                                tether: false,
+                                                                altAxis: true,
+                                                            },
+                                                        },
+                                                    ]}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleFilter('custom')}
+                                                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50"
+                                                disabled={!customStartDate || !customEndDate}
+                                            >Apply</button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Active Date Filter Display */}
+                            {activeFilter !== 'week' && (
+                                <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                                    <span className="text-blue-200 text-sm font-medium">
+                                        Active filter: {activeFilter === 'custom' 
+                                            ? `${customStartDate?.toLocaleDateString()} - ${customEndDate?.toLocaleDateString()}` 
+                                            : activeFilter === 'all'
+                                                ? 'All Dates'
+                                                : activeFilter === 'month'
+                                                    ? 'This Month'
+                                                    : activeFilter === 'today'
+                                                        ? 'Today'
+                                                        : activeFilter
+                                        }
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Additional Filters Section */}
                     {showFilters && (
                         <div className="mb-6">
                             <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-xl font-semibold text-white">Filters</h2>
+                                    <h2 className="text-xl font-semibold text-white">Additional Filters</h2>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setSidebarLayout(!sidebarLayout)}
@@ -422,13 +619,10 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                         </button>
                                         <button 
                                             onClick={() => {
-                                                setActiveFilter('all');
                                                 setActiveWorkType('all');
                                                 setActiveTracker('all');
                                                 setActiveProject('all');
                                                 setActiveClient('all');
-                                                setCustomStartDate(null);
-                                                setCustomEndDate(null);
                                                 setTrackerSearch('');
                                                 setProjectSearch('');
                                                 setClientSearch('');
@@ -439,28 +633,23 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                                     project: false,
                                                     client: false
                                                 });
-                                                router.get(route('work-hours.index'));
+                                                handleFilter(activeFilter, 'all', 'all', 'all', 'all');
                                             }}
                                             className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg text-sm backdrop-blur-xl border border-white/20"
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                             </svg>
-                                            Clear All
+                                            Clear Additional Filters
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Active Filters Summary */}
-                                {(activeFilter !== 'all' || activeWorkType !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
+                                {/* Active Additional Filters Summary */}
+                                {(activeWorkType !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
                                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
-                                        <h3 className="text-sm font-semibold text-blue-800 mb-2">Active Filters:</h3>
+                                        <h3 className="text-sm font-semibold text-blue-800 mb-2">Active Additional Filters:</h3>
                                         <div className="flex gap-2 flex-wrap text-xs">
-                                            {activeFilter !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md">
-                                                    Date: {activeFilter === 'custom' ? `${customStartDate?.toLocaleDateString()} - ${customEndDate?.toLocaleDateString()}` : activeFilter}
-                                                </span>
-                                            )}
                                             {activeWorkType !== 'all' && (
                                                 <span className="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">
                                                     Work Type: {formatWorkType(activeWorkType)}
@@ -485,57 +674,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'all', 
                                     </div>
                                 )}
 
-                                {/* Filter Controls in Grid or Sidebar Layout */}
-                                <div className={`${sidebarLayout ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4' : 'space-y-4'}`}>
-
-                                        {/* Date Range Filter */}
-                                        <div className="bg-gradient-to-r from-green-50 to-yellow-50 rounded-lg border border-green-200">
-                                            <button
-                                                onClick={() => toggleFilter('date')}
-                                                className="w-full flex items-center justify-between p-4 text-left focus:outline-none"
-                                            >
-                                                <h3 className="text-sm font-semibold text-green-800">Filter by Date Range</h3>
-                                                <svg className={`w-5 h-5 text-green-600 transform transition-transform ${expandedFilters.date ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </button>
-                                            {expandedFilters.date && (
-                                                <div className="px-4 pb-4">
-                                                    <div className="flex gap-2 flex-wrap">
-                                                        <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>All Dates</button>
-                                                        <button onClick={() => handleFilter('today')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'today' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Today</button>
-                                                        <button onClick={() => handleFilter('week')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'week' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Week</button>
-                                                        <button onClick={() => handleFilter('month')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'month' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>This Month</button>
-                                                        <button onClick={() => handleFilter('custom')} className={`px-4 py-2 rounded-lg font-medium transition-all ${activeFilter === 'custom' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' : 'bg-white text-green-700 border border-green-300 hover:bg-green-50'}`}>Custom Range</button>
-                                                    </div>
-                                                    {activeFilter === 'custom' && (
-                                                        <div className="flex gap-3 items-center mt-4 p-3 bg-white rounded-lg border border-green-200">
-                                                            <span className="text-green-700 font-medium">From:</span>
-                                                            <DatePicker
-                                                                selected={customStartDate}
-                                                                onChange={date => setCustomStartDate(date)}
-                                                                dateFormat="yyyy-MM-dd"
-                                                                maxDate={customEndDate || undefined}
-                                                                className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                                            />
-                                                            <span className="text-green-700 font-medium">To:</span>
-                                                            <DatePicker
-                                                                selected={customEndDate}
-                                                                onChange={date => setCustomEndDate(date)}
-                                                                dateFormat="yyyy-MM-dd"
-                                                                minDate={customStartDate || undefined}
-                                                                className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                                            />
-                                                            <button
-                                                                onClick={() => handleFilter('custom')}
-                                                                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
-                                                                disabled={!customStartDate || !customEndDate}
-                                                            >Apply</button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
+                                {/* Additional Filter Controls in Grid or Sidebar Layout */}
+                                <div className={`${sidebarLayout ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-4'}`}>
 
                                         {/* Work Type Filter */}
                                         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">

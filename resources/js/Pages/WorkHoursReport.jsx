@@ -239,7 +239,11 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         if (clientFilter && clientFilter !== 'all') {
             params.client = clientFilter;
         }
-        router.get(route('work-hours.report'), params);
+        router.get(route('work-hours.report'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['workHours', 'flash']
+        });
     };
 
     const handleWorkTypeFilter = (type) => {
@@ -295,7 +299,11 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         if (activeProject !== 'all') params.project = activeProject;
         if (activeClient !== 'all') params.client = activeClient;
         
-        router.get(route('work-hours.report'), params);
+        router.get(route('work-hours.report'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['workHours', 'flash']
+        });
     };
 
     return (
@@ -372,10 +380,10 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                 </div>
                             </div>
                             <div className="mb-6 space-y-4">
-                                {/* Main Filters Row */}
-                                <div className="grid grid-cols-1 gap-4 relative">
-                                    {/* Date Range Filter */}
-                                    <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                {/* Main Filters Row - Side by Side Layout */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    {/* Date Range Filter - Takes up 2/3 of the space */}
+                                    <div className="lg:col-span-2 bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
                                         <h3 className="text-sm font-semibold text-white mb-3">Filter by Date Range</h3>
                                         <div className="flex gap-2 flex-wrap">
                                             <button onClick={() => handleFilter('all')} className={`px-4 py-2 rounded-xl font-medium transition-all ${activeFilter === 'all' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-xl'}`}>All Dates</button>
@@ -410,6 +418,84 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Active Filters Summary - Takes up 1/3 of the space */}
+                                    {(activeFilter !== 'all' || activeWorkType !== 'all' || activeUser !== 'all' || activeDesignation !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
+                                        <div className="lg:col-span-1 bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h3 className="text-sm font-semibold text-white">Active Filters</h3>
+                                                <button 
+                                                    onClick={() => {
+                                                        setActiveFilter('all');
+                                                        setActiveWorkType('all');
+                                                        setActiveUser('all');
+                                                        setActiveDesignation('all');
+                                                        setActiveTracker('all');
+                                                        setActiveProject('all');
+                                                        setActiveClient('all');
+                                                        setCustomStartDate(null);
+                                                        setCustomEndDate(null);
+                                                        router.get(route('work-hours.report'), { perPage: selectedPerPage }, {
+                                                            preserveState: true,
+                                                            preserveScroll: true,
+                                                            only: ['workHours', 'flash']
+                                                        });
+                                                    }}
+                                                    className="inline-flex items-center px-2 py-1 bg-gradient-to-r from-red-500/80 to-red-600/80 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-medium transition-all text-xs backdrop-blur-xl"
+                                                    title="Clear all filters"
+                                                >
+                                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    Clear All
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                                                {activeFilter !== 'all' && (
+                                                    <div className="inline-flex items-center px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg backdrop-blur-xl border border-blue-400/20 text-xs">
+                                                        <span className="font-medium mr-1">Date:</span>
+                                                        <span>{activeFilter === 'custom' ? `${customStartDate?.toLocaleDateString()} - ${customEndDate?.toLocaleDateString()}` : activeFilter}</span>
+                                                    </div>
+                                                )}
+                                                {activeWorkType !== 'all' && (
+                                                    <div className="inline-flex items-center px-2 py-1 bg-purple-500/20 text-purple-300 rounded-lg backdrop-blur-xl border border-purple-400/20 text-xs">
+                                                        <span className="font-medium mr-1">Type:</span>
+                                                        <span>{formatWorkType(activeWorkType)}</span>
+                                                    </div>
+                                                )}
+                                                {activeUser !== 'all' && (
+                                                    <div className="inline-flex items-center px-2 py-1 bg-green-500/20 text-green-300 rounded-lg backdrop-blur-xl border border-green-400/20 text-xs">
+                                                        <span className="font-medium mr-1">User:</span>
+                                                        <span>{users.find(u => u.id == activeUser)?.name || 'Unknown'}</span>
+                                                    </div>
+                                                )}
+                                                {activeDesignation !== 'all' && (
+                                                    <div className="inline-flex items-center px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg backdrop-blur-xl border border-indigo-400/20 text-xs">
+                                                        <span className="font-medium mr-1">Role:</span>
+                                                        <span>{activeDesignation}</span>
+                                                    </div>
+                                                )}
+                                                {activeTracker !== 'all' && (
+                                                    <div className="inline-flex items-center px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-lg backdrop-blur-xl border border-yellow-400/20 text-xs">
+                                                        <span className="font-medium mr-1">Tracker:</span>
+                                                        <span>{activeTracker}</span>
+                                                    </div>
+                                                )}
+                                                {activeProject !== 'all' && (
+                                                    <div className="inline-flex items-center px-2 py-1 bg-pink-500/20 text-pink-300 rounded-lg backdrop-blur-xl border border-pink-400/20 text-xs">
+                                                        <span className="font-medium mr-1">Project:</span>
+                                                        <span title={activeProject}>{activeProject.length > 12 ? `${activeProject.substring(0, 12)}...` : activeProject}</span>
+                                                    </div>
+                                                )}
+                                                {activeClient !== 'all' && (
+                                                    <div className="inline-flex items-center px-2 py-1 bg-teal-500/20 text-teal-300 rounded-lg backdrop-blur-xl border border-teal-400/20 text-xs">
+                                                        <span className="font-medium mr-1">Client:</span>
+                                                        <span title={activeClient}>{activeClient.length > 12 ? `${activeClient.substring(0, 12)}...` : activeClient}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Advanced Filters Toggle */}
@@ -651,70 +737,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-
-                                {/* Active Filters Summary */}
-                                {(activeFilter !== 'all' || activeWorkType !== 'all' || activeUser !== 'all' || activeDesignation !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
-                                    <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20 mb-4">
-                                        <h3 className="text-sm font-semibold text-white mb-2">Active Filters:</h3>
-                                        <div className="flex gap-2 flex-wrap text-xs">
-                                            {activeFilter !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg backdrop-blur-xl border border-blue-400/20">
-                                                    Date: {activeFilter === 'custom' ? `${customStartDate?.toLocaleDateString()} - ${customEndDate?.toLocaleDateString()}` : activeFilter}
-                                                </span>
-                                            )}
-                                            {activeWorkType !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-purple-500/20 text-purple-300 rounded-lg backdrop-blur-xl border border-purple-400/20">
-                                                    Work Type: {formatWorkType(activeWorkType)}
-                                                </span>
-                                            )}
-                                            {activeUser !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg backdrop-blur-xl border border-blue-400/20">
-                                                    User: {users.find(u => u.id == activeUser)?.name || 'Unknown User'}
-                                                </span>
-                                            )}
-                                            {activeDesignation !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg backdrop-blur-xl border border-indigo-400/20">
-                                                    Designation: {activeDesignation}
-                                                </span>
-                                            )}
-                                            {activeTracker !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-purple-500/20 text-purple-300 rounded-lg backdrop-blur-xl border border-purple-400/20">
-                                                    Tracker: {activeTracker}
-                                                </span>
-                                            )}
-                                            {activeProject !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-green-500/20 text-green-300 rounded-lg backdrop-blur-xl border border-green-400/20">
-                                                    Project: {activeProject.length > 15 ? `${activeProject.substring(0, 15)}...` : activeProject}
-                                                </span>
-                                            )}
-                                            {activeClient !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-teal-500/20 text-teal-300 rounded-lg backdrop-blur-xl border border-teal-400/20">
-                                                    Client: {activeClient.length > 15 ? `${activeClient.substring(0, 15)}...` : activeClient}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <button 
-                                            onClick={() => {
-                                                setActiveFilter('all');
-                                                setActiveWorkType('all');
-                                                setActiveUser('all');
-                                                setActiveDesignation('all');
-                                                setActiveTracker('all');
-                                                setActiveProject('all');
-                                                setActiveClient('all');
-                                                setCustomStartDate(null);
-                                                setCustomEndDate(null);
-                                                router.get(route('work-hours.report'), { perPage: selectedPerPage });
-                                            }}
-                                            className="mt-3 inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-all text-xs backdrop-blur-xl"
-                                        >
-                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                            Clear All Filters
-                                        </button>
                                     </div>
                                 )}
                             </div>
