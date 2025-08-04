@@ -20,12 +20,64 @@ class UserController extends Controller
             $perPage = 10;
         }
         
-        $users = User::orderBy('name')
+        // Start building the query
+        $query = User::query();
+        
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%');
+            });
+        }
+        
+        // Apply designation filter
+        if ($request->filled('designation')) {
+            $designation = $request->get('designation');
+            if ($designation === 'no_designation') {
+                $query->where(function($q) {
+                    $q->whereNull('designation')
+                      ->orWhere('designation', '');
+                });
+            } elseif ($designation !== 'all') {
+                $query->where('designation', $designation);
+            }
+        }
+        
+        // Apply role filter
+        if ($request->filled('role') && $request->get('role') !== 'all') {
+            $query->where('role', $request->get('role'));
+        }
+        
+        $users = $query->orderBy('name')
             ->paginate($perPage)
             ->appends($request->query());
             
+        // Get all unique designations and roles for filter dropdowns
+        $allDesignations = User::whereNotNull('designation')
+            ->where('designation', '!=', '')
+            ->distinct()
+            ->pluck('designation')
+            ->sort()
+            ->values();
+            
+        $allRoles = User::distinct()
+            ->pluck('role')
+            ->sort()
+            ->values();
+            
         return Inertia::render('UsersList', [
             'users' => $users,
+            'filters' => [
+                'search' => $request->get('search', ''),
+                'designation' => $request->get('designation', 'all'),
+                'role' => $request->get('role', 'all'),
+            ],
+            'filterOptions' => [
+                'designations' => $allDesignations,
+                'roles' => $allRoles,
+            ],
         ]);
     }
 

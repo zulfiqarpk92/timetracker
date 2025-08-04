@@ -16,15 +16,15 @@ function Toast({ message, onClose }) {
     );
 }
 
-export default function UsersList({ auth, users, flash }) {
+export default function UsersList({ auth, users, flash, filters = {}, filterOptions = {} }) {
     const [deleteId, setDeleteId] = useState(null);
     const [toast, setToast] = useState(flash?.success || "");
-    const [selectedPerPage, setSelectedPerPage] = useState(10);
+    const [selectedPerPage, setSelectedPerPage] = useState(users?.per_page || 10);
     
-    // Filter states
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedDesignation, setSelectedDesignation] = useState("all");
-    const [selectedRole, setSelectedRole] = useState("all");
+    // Filter states - initialized from backend filters
+    const [searchTerm, setSearchTerm] = useState(filters.search || "");
+    const [selectedDesignation, setSelectedDesignation] = useState(filters.designation || "all");
+    const [selectedRole, setSelectedRole] = useState(filters.role || "all");
     const [designationDropdownOpen, setDesignationDropdownOpen] = useState(false);
     const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
     const [designationDropdownPosition, setDesignationDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -33,6 +33,62 @@ export default function UsersList({ auth, users, flash }) {
     const roleDropdownRef = useRef(null);
     const designationButtonRef = useRef(null);
     const roleButtonRef = useRef(null);
+
+    // Debounce search to avoid too many API calls
+    const [searchDebounce, setSearchDebounce] = useState(null);
+
+    // Function to apply filters by navigating to backend
+    const applyFilters = (newFilters = {}) => {
+        const params = {
+            search: newFilters.search !== undefined ? newFilters.search : searchTerm,
+            designation: newFilters.designation !== undefined ? newFilters.designation : selectedDesignation,
+            role: newFilters.role !== undefined ? newFilters.role : selectedRole,
+            perPage: newFilters.perPage !== undefined ? newFilters.perPage : selectedPerPage,
+        };
+
+        // Remove empty or default values
+        Object.keys(params).forEach(key => {
+            if (params[key] === '' || params[key] === 'all') {
+                delete params[key];
+            }
+        });
+
+        // Always keep perPage if it's not the default
+        if (params.perPage && params.perPage !== 10) {
+            // Keep perPage
+        } else if (params.perPage === 10) {
+            delete params.perPage; // Remove default perPage
+        }
+
+        router.get(route('users.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    // Handle search with debouncing
+    const handleSearchChange = (value) => {
+        setSearchTerm(value);
+        
+        if (searchDebounce) {
+            clearTimeout(searchDebounce);
+        }
+        
+        const timeout = setTimeout(() => {
+            applyFilters({ search: value });
+        }, 500); // 500ms debounce
+        
+        setSearchDebounce(timeout);
+    };
+
+    // Clean up debounce timeout
+    useEffect(() => {
+        return () => {
+            if (searchDebounce) {
+                clearTimeout(searchDebounce);
+            }
+        };
+    }, [searchDebounce]);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -77,18 +133,14 @@ export default function UsersList({ auth, users, flash }) {
         };
     }, [designationDropdownOpen, roleDropdownOpen]);
 
-    // Get unique designations from users
+    // Get unique designations from backend filter options
     const getUniqueDesignations = () => {
-        const designations = users?.data
-            ? users.data.map(user => user.designation).filter(designation => designation && designation.trim() !== "")
-            : [];
-        return [...new Set(designations)].sort();
+        return filterOptions.designations || [];
     };
 
-    // Get unique roles from users
+    // Get unique roles from backend filter options
     const getUniqueRoles = () => {
-        const roles = users?.data ? users.data.map(user => user.role) : [];
-        return [...new Set(roles)].sort();
+        return filterOptions.roles || [];
     };
 
     // Handle designation dropdown toggle
@@ -119,17 +171,40 @@ export default function UsersList({ auth, users, flash }) {
         setDesignationDropdownOpen(false); // Close other dropdown
     };
 
-    // Filter users based on search criteria
-    const filteredUsers = users?.data ? users.data.filter(user => {
-        const matchesName = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesDesignation = selectedDesignation === "all" || 
-                                 (selectedDesignation === "no_designation" && (!user.designation || user.designation.trim() === "")) ||
-                                 user.designation === selectedDesignation;
-        const matchesRole = selectedRole === "all" || user.role === selectedRole;
+    // Handle designation filter change
+    const handleDesignationChange = (designation) => {
+        setSelectedDesignation(designation);
+        setDesignationDropdownOpen(false);
+        applyFilters({ designation });
+    };
+
+    // Handle role filter change
+    const handleRoleChange = (role) => {
+        setSelectedRole(role);
+        setRoleDropdownOpen(false);
+        applyFilters({ role });
+    };
+
+    // Clear all filters
+    const clearAllFilters = () => {
+        setSearchTerm("");
+        setSelectedDesignation("all");
+        setSelectedRole("all");
         
-        return matchesName && matchesDesignation && matchesRole;
-    }) : [];
+        if (searchDebounce) {
+            clearTimeout(searchDebounce);
+        }
+        
+        const params = {};
+        if (selectedPerPage !== 10) {
+            params.perPage = selectedPerPage;
+        }
+        
+        router.get(route('users.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
 
     const handleDelete = (id) => {
         setDeleteId(id);
@@ -153,7 +228,7 @@ export default function UsersList({ auth, users, flash }) {
 
     const handlePerPageChange = (newPerPage) => {
         setSelectedPerPage(newPerPage);
-        router.get(route('users.index'), { perPage: newPerPage });
+        applyFilters({ perPage: newPerPage });
     };
 
     return (
@@ -253,7 +328,7 @@ export default function UsersList({ auth, users, flash }) {
                                             placeholder="Search by name or email..."
                                             className="w-full px-4 py-3 pl-10 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-white/50 text-sm"
                                             value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onChange={(e) => handleSearchChange(e.target.value)}
                                         />
                                         <svg className="w-5 h-5 text-blue-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -305,10 +380,7 @@ export default function UsersList({ auth, users, flash }) {
                                             <div className="max-h-48 overflow-y-auto">
                                                 <div
                                                     className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${selectedDesignation === 'all' ? 'bg-green-500/20 text-green-300 font-medium' : 'text-white'}`}
-                                                    onClick={() => {
-                                                        setSelectedDesignation('all');
-                                                        setDesignationDropdownOpen(false);
-                                                    }}
+                                                    onClick={() => handleDesignationChange('all')}
                                                 >
                                                     {selectedDesignation === 'all' && (
                                                         <svg className="w-4 h-4 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -319,10 +391,7 @@ export default function UsersList({ auth, users, flash }) {
                                                 </div>
                                                 <div
                                                     className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${selectedDesignation === 'no_designation' ? 'bg-green-500/20 text-green-300 font-medium' : 'text-white'}`}
-                                                    onClick={() => {
-                                                        setSelectedDesignation('no_designation');
-                                                        setDesignationDropdownOpen(false);
-                                                    }}
+                                                    onClick={() => handleDesignationChange('no_designation')}
                                                 >
                                                     {selectedDesignation === 'no_designation' && (
                                                         <svg className="w-4 h-4 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -335,10 +404,7 @@ export default function UsersList({ auth, users, flash }) {
                                                     <div
                                                         key={designation}
                                                         className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${selectedDesignation === designation ? 'bg-green-500/20 text-green-300 font-medium' : 'text-white'}`}
-                                                        onClick={() => {
-                                                            setSelectedDesignation(designation);
-                                                            setDesignationDropdownOpen(false);
-                                                        }}
+                                                        onClick={() => handleDesignationChange(designation)}
                                                     >
                                                         {selectedDesignation === designation && (
                                                             <svg className="w-4 h-4 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -394,10 +460,7 @@ export default function UsersList({ auth, users, flash }) {
                                             <div className="max-h-48 overflow-y-auto">
                                                 <div
                                                     className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${selectedRole === 'all' ? 'bg-purple-500/20 text-purple-300 font-medium' : 'text-white'}`}
-                                                    onClick={() => {
-                                                        setSelectedRole('all');
-                                                        setRoleDropdownOpen(false);
-                                                    }}
+                                                    onClick={() => handleRoleChange('all')}
                                                 >
                                                     {selectedRole === 'all' && (
                                                         <svg className="w-4 h-4 mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
@@ -410,10 +473,7 @@ export default function UsersList({ auth, users, flash }) {
                                                     <div
                                                         key={role}
                                                         className={`px-4 py-2 cursor-pointer hover:bg-white/20 transition-colors flex items-center ${selectedRole === role ? 'bg-purple-500/20 text-purple-300 font-medium' : 'text-white'}`}
-                                                        onClick={() => {
-                                                            setSelectedRole(role);
-                                                            setRoleDropdownOpen(false);
-                                                        }}
+                                                        onClick={() => handleRoleChange(role)}
                                                     >
                                                         {selectedRole === role && (
                                                             <svg className="w-4 h-4 mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
@@ -432,18 +492,14 @@ export default function UsersList({ auth, users, flash }) {
                                 {/* Results Summary */}
                                 <div className="flex justify-between items-center text-sm text-white/80 bg-white/10 backdrop-blur-xl px-4 py-3 rounded-xl border border-white/20">
                                     <span>
-                                        Showing {filteredUsers.length} of {users?.total || 0} users
+                                        Showing {users?.data?.length || 0} of {users?.total || 0} users
                                         {searchTerm && ` matching "${searchTerm}"`}
                                         {selectedDesignation !== "all" && ` with designation "${selectedDesignation === "no_designation" ? "No Designation" : selectedDesignation}"`}
                                         {selectedRole !== "all" && ` with role "${selectedRole}"`}
                                     </span>
                                     {(searchTerm || selectedDesignation !== "all" || selectedRole !== "all") && (
                                         <button
-                                            onClick={() => {
-                                                setSearchTerm("");
-                                                setSelectedDesignation("all");
-                                                setSelectedRole("all");
-                                            }}
+                                            onClick={clearAllFilters}
                                             className="px-3 py-1 text-xs bg-white/10 hover:bg-white/20 text-white rounded-md transition-all border border-white/20"
                                         >
                                             Clear Filters
@@ -480,7 +536,7 @@ export default function UsersList({ auth, users, flash }) {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white/5 backdrop-blur-xl divide-y divide-white/10">
-                                        {filteredUsers.length === 0 ? (
+                                        {(!users?.data || users.data.length === 0) ? (
                                             <tr>
                                                 <td colSpan={7} className="px-6 py-12 text-center">
                                                     <div className="text-white/60">
@@ -498,7 +554,7 @@ export default function UsersList({ auth, users, flash }) {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            filteredUsers.map((user, index) => (
+                                            users.data.map((user, index) => (
                                             <tr key={user.id} className={`${index % 2 === 0 ? 'bg-white/5' : 'bg-white/10'} hover:bg-blue-500/20 transition-colors backdrop-blur-xl`}>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-300">
                                                     {user.id}
