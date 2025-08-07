@@ -1,0 +1,31 @@
+---
+deployment:
+  tasks:
+    # Set your target path (the site's document root)
+    - export DEPLOYPATH=/home/sparkingasia/timetracker
+
+    # Sync code (skip big/secret stuff)
+    - /bin/rsync -a --delete \
+        --exclude=".git" \
+        --exclude="node_modules" \
+        --exclude="vendor" \
+        --exclude="storage/*.key" \
+        --exclude=".env" \
+        --exclude="storage/logs" \
+        --exclude="storage/framework/cache" \
+        --exclude="storage/framework/sessions" \
+        --exclude="storage/framework/views" \
+        ./ $DEPLOYPATH
+
+    # Install PHP dependencies & optimize
+    - /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --working-dir=$DEPLOYPATH
+
+    # Laravel optimization tasks
+    - /bin/php $DEPLOYPATH/artisan migrate --force
+    - /bin/php $DEPLOYPATH/artisan config:cache
+    - /bin/php $DEPLOYPATH/artisan route:cache
+    - /bin/php $DEPLOYPATH/artisan view:cache
+
+    # Set proper permissions
+    - /bin/chmod -R 755 $DEPLOYPATH/storage
+    - /bin/chmod -R 755 $DEPLOYPATH/bootstrap/cache
