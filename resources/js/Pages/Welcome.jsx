@@ -3,7 +3,7 @@ import { Link, Head } from "@inertiajs/react";
 export default function Welcome({ auth, laravelVersion, phpVersion }) {
     return (
         <>
-            <Head title="Sparking Asia TimeTracker" />
+            <Head title="Sparking Asia" />
             
             {/* Navigation - Outside the main container */}
             <nav className="sticky top-0 z-30 p-6 bg-black/20 backdrop-blur-xl border-b border-gray-600/20">
@@ -174,7 +174,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                     {/* Footer */}
                     <div className="text-center mt-20">
                         <p className="text-gray-400 text-sm">
-                            © 2025 Sparking Asia TimeTracker. Crafted with ❤️ for productivity.
+                            © 2025 Sparking Asia. Crafted with ❤️ for productivity.
                         </p>
                     </div>
                 </div>

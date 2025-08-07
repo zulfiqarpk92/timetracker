@@ -24,7 +24,7 @@ export default function Login({ status, canResetPassword }) {
 
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{background: 'linear-gradient(135deg, #282a2a 0%, #1f2020 50%, #161717 100%)'}}>
-            <Head title="Welcome Back" />
+            <Head title="Login" />
             
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden">
@@ -229,7 +229,7 @@ export default function Login({ status, canResetPassword }) {
                     {/* Footer */}
                     <div className="mt-8 text-center">
                         <p className="text-xs text-gray-500">
-                            © 2025 Sparking Asia TimeTracker. All rights reserved.
+                            © 2025 Sparking Asia. All rights reserved.
                         </p>
                     </div>
                 </div>
