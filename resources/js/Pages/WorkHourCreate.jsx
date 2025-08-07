@@ -252,6 +252,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                                 else if (num < 0) num = 0;
                                                 createForm.setData('hours', num === '' ? '0' : num.toString());
                                             }}
+                                            onWheel={e => e.target.blur()}
                                             className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
                                             required
                                         />
@@ -275,6 +276,7 @@ export default function WorkHourCreate({ auth, trackers = [], projects = [] }) {
                                                 else if (num < 0) num = 0;
                                                 createForm.setData('minutes', num === '' ? '' : num.toString());
                                             }}
+                                            onWheel={e => e.target.blur()}
                                             className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
                                             required
                                         />
