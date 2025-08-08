@@ -18,13 +18,76 @@ class ProjectController extends Controller
             $perPage = 10;
         }
         
-        $projects = Project::with('client')
-            ->orderBy('name')
-            ->paginate($perPage)
-            ->appends($request->query());
+        $query = Project::with('client');
+        
+        // Determine if we need to join clients table
+        $needsClientJoin = $request->filled('client') || $request->filled('tag') || in_array($request->get('sort'), ['client', 'tag']);
+        
+        if ($needsClientJoin) {
+            $query->leftJoin('clients', 'projects.client_id', '=', 'clients.id')
+                  ->select('projects.*');
+        }
+        
+        // Search functionality
+        if ($request->filled('search')) {
+            $searchTerm = $request->get('search');
+            $query->where('projects.name', 'like', '%' . $searchTerm . '%');
+        }
+        
+        // Client filter
+        if ($request->filled('client')) {
+            $clientName = $request->get('client');
+            $query->where('clients.name', $clientName);
+        }
+        
+        // Tag filter
+        if ($request->filled('tag')) {
+            $tagName = $request->get('tag');
+            $query->whereRaw('JSON_CONTAINS(clients.tags, ?)', ['"' . $tagName . '"']);
+        }
+        
+        // Sorting
+        $sortBy = $request->get('sort', 'name');
+        $sortOrder = $request->get('order', 'asc');
+        
+        // Validate sort parameters
+        $allowedSortFields = ['name', 'tag', 'client'];
+        $allowedSortOrders = ['asc', 'desc'];
+        
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'name';
+        }
+        
+        if (!in_array($sortOrder, $allowedSortOrders)) {
+            $sortOrder = 'asc';
+        }
+        
+        // Apply sorting
+        if ($sortBy === 'client') {
+            $query->orderBy('clients.name', $sortOrder);
+        } elseif ($sortBy === 'tag') {
+            // Sort by the first tag in the client's tags array
+            $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(clients.tags, '$[0]')) {$sortOrder}");
+        } elseif ($sortBy === 'name') {
+            $query->orderBy('projects.name', $sortOrder);
+        } else {
+            $query->orderBy('projects.' . $sortBy, $sortOrder);
+        }
+        
+        $projects = $query->paginate($perPage)->appends($request->query());
+        
+        // Get filters for frontend
+        $filters = [
+            'search' => $request->get('search'),
+            'client' => $request->get('client'),
+            'tag' => $request->get('tag'),
+            'sort' => $sortBy,
+            'order' => $sortOrder,
+        ];
             
         return Inertia::render('ProjectsList', [
             'projects' => $projects,
+            'filters' => $filters,
         ]);
     }
 

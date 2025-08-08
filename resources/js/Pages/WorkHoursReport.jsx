@@ -317,6 +317,10 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         >
             <Head title="Work Hours Report" />
             <AnimatedBackground />
+            
+            {/* Portal container for DatePicker */}
+            <div id="date-picker-portal"></div>
+            
             <Toast message={toast} onClose={closeToast} />
             {deleteId && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -399,8 +403,20 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     selected={customStartDate}
                                                     onChange={date => setCustomStartDate(date)}
                                                     dateFormat="yyyy-MM-dd"
-                                                    maxDate={customEndDate || undefined}
+                                                    maxDate={customEndDate || new Date()}
                                                     className="px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
+                                                    calendarClassName="bg-slate-800 border border-white/20 rounded-xl shadow-2xl"
+                                                    dayClassName={(date) => "text-white hover:bg-blue-500/50 hover:text-white rounded-lg transition-colors"}
+                                                    weekDayClassName={(date) => "text-gray-300 text-sm font-medium"}
+                                                    monthClassName={(date) => "text-white hover:bg-blue-500/50 rounded-lg transition-colors"}
+                                                    timeClassName={(date) => "text-white"}
+                                                    popperClassName="z-50"
+                                                    popperPlacement="bottom-start"
+                                                    showPopperArrow={false}
+                                                    placeholderText="Select start date"
+                                                    isClearable
+                                                    withPortal
+                                                    portalId="date-picker-portal"
                                                 />
                                                 <span className="text-white font-medium">To:</span>
                                                 <DatePicker
@@ -408,7 +424,20 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                     onChange={date => setCustomEndDate(date)}
                                                     dateFormat="yyyy-MM-dd"
                                                     minDate={customStartDate || undefined}
+                                                    maxDate={new Date()}
                                                     className="px-3 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
+                                                    calendarClassName="bg-slate-800 border border-white/20 rounded-xl shadow-2xl"
+                                                    dayClassName={(date) => "text-white hover:bg-blue-500/50 hover:text-white rounded-lg transition-colors"}
+                                                    weekDayClassName={(date) => "text-gray-300 text-sm font-medium"}
+                                                    monthClassName={(date) => "text-white hover:bg-blue-500/50 rounded-lg transition-colors"}
+                                                    timeClassName={(date) => "text-white"}
+                                                    popperClassName="z-50"
+                                                    popperPlacement="bottom-start"
+                                                    showPopperArrow={false}
+                                                    placeholderText="Select end date"
+                                                    isClearable
+                                                    withPortal
+                                                    portalId="date-picker-portal"
                                                 />
                                                 <button
                                                     onClick={() => handleFilter('custom')}

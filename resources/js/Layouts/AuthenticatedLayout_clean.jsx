@@ -14,7 +14,7 @@ export default function Authenticated({ user, header, children }) {
             <nav className="sticky top-0 z-50 backdrop-blur-2xl border-b border-white/5 shadow-2xl" style={{ 
                 background: 'linear-gradient(135deg, rgba(40, 42, 42, 0.98) 0%, rgba(31, 32, 32, 0.99) 50%, rgba(25, 27, 27, 0.99) 100%)'
             }}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="w-full px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
                         <div className="flex">
                             <div className="shrink-0 flex items-center">
@@ -44,17 +44,21 @@ export default function Authenticated({ user, header, children }) {
                                 </NavLink>
                                 
                                 <NavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
-                                    Time
+                                    Work diary
                                 </NavLink>
                                 
                                 {user?.role === 'admin' && (
                                     <>
+                                        <NavLink href={route('clients.index')} active={['clients.index', 'clients.create', 'clients.edit'].some(r => route().current(r))}>
+                                            Clients
+                                        </NavLink>
+                                        
                                         <NavLink href={route('projects.index')} active={['projects.index', 'projects.create', 'projects.edit'].some(r => route().current(r))}>
                                             Projects
                                         </NavLink>
                                         
                                         <NavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
-                                            Analytics
+                                            Report
                                         </NavLink>
                                     </>
                                 )}
@@ -143,17 +147,21 @@ export default function Authenticated({ user, header, children }) {
                         </ResponsiveNavLink>
                         
                         <ResponsiveNavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
-                            Time Tracking
+                            Work diary
                         </ResponsiveNavLink>
                         
                         {user?.role === 'admin' && (
                             <>
+                                <ResponsiveNavLink href={route('clients.index')} active={['clients.index', 'clients.create', 'clients.edit'].some(r => route().current(r))}>
+                                    Clients
+                                </ResponsiveNavLink>
+                                
                                 <ResponsiveNavLink href={route('projects.index')} active={['projects.index', 'projects.create', 'projects.edit'].some(r => route().current(r))}>
                                     Projects
                                 </ResponsiveNavLink>
                                 
                                 <ResponsiveNavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
-                                    Analytics
+                                    Report
                                 </ResponsiveNavLink>
                             </>
                         )}
@@ -197,7 +205,7 @@ export default function Authenticated({ user, header, children }) {
                 <header className="sticky top-16 z-40 backdrop-blur-2xl border-b border-white/5" style={{ 
                     background: 'linear-gradient(135deg, rgba(40, 42, 42, 0.95) 0%, rgba(31, 32, 32, 0.98) 100%)'
                 }}>
-                    <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+                    <div className="w-full py-4 px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center space-x-3">
                             <div className="p-2 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-lg border border-white/10">
                                 <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
