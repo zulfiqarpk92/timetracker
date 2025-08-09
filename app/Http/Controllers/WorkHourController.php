@@ -161,6 +161,121 @@ class WorkHourController extends Controller
         return redirect()->route('work-hours.index')->with('success', 'Work hour entry deleted.');
     }
 
+    public function exportPersonal(Request $request)
+    {
+        $user = auth()->user();
+        $query = WorkHour::with('user', 'project', 'project.client');
+        
+        // Only show current user's entries
+        $query->where('user_id', $user->id);
+        
+        $filter = $request->input('filter', 'all');
+        $startDate = $request->input('startDate');
+        $endDate = $request->input('endDate');
+        $workType = $request->input('workType', 'all');
+        $tracker = $request->input('tracker', 'all');
+        $project = $request->input('project', 'all');
+        $client = $request->input('client', 'all');
+        
+        // Apply date filter
+        if ($filter !== 'all' && $startDate && $endDate) {
+            $query->whereBetween('date', [$startDate, $endDate]);
+        }
+        
+        // Apply work type filter
+        if ($workType !== 'all') {
+            $query->where('work_type', $workType);
+        }
+        
+        // Apply tracker filter
+        if ($tracker !== 'all') {
+            $query->where('tracker', $tracker);
+        }
+        
+        // Apply project filter
+        if ($project !== 'all') {
+            $query->whereHas('project', function($q) use ($project) {
+                $q->where('name', $project);
+            });
+        }
+        
+        // Apply client filter
+        if ($client !== 'all') {
+            $query->whereHas('project.client', function($q) use ($client) {
+                $q->where('name', $client);
+            });
+        }
+        
+        // Get all data without pagination
+        $workHours = $query->orderByDesc('date')->orderByDesc('id')->get();
+        
+        return response()->json([
+            'data' => $workHours
+        ]);
+    }
+
+    public function export(Request $request)
+    {
+        $query = WorkHour::with('user', 'project', 'project.client');
+        $filter = $request->input('filter', 'all');
+        $startDate = $request->input('startDate');
+        $endDate = $request->input('endDate');
+        $workType = $request->input('workType', 'all');
+        $userId = $request->input('userId', 'all');
+        $designation = $request->input('designation', 'all');
+        $tracker = $request->input('tracker', 'all');
+        $project = $request->input('project', 'all');
+        $client = $request->input('client', 'all');
+        
+        // Apply date filter
+        if ($filter !== 'all' && $startDate && $endDate) {
+            $query->whereBetween('date', [$startDate, $endDate]);
+        }
+        
+        // Apply work type filter
+        if ($workType !== 'all') {
+            $query->where('work_type', $workType);
+        }
+        
+        // Apply user filter
+        if ($userId !== 'all') {
+            $query->where('user_id', $userId);
+        }
+        
+        // Apply designation filter
+        if ($designation !== 'all') {
+            $query->whereHas('user', function($q) use ($designation) {
+                $q->where('designation', $designation);
+            });
+        }
+        
+        // Apply tracker filter
+        if ($tracker !== 'all') {
+            $query->where('tracker', $tracker);
+        }
+        
+        // Apply project filter
+        if ($project !== 'all') {
+            $query->whereHas('project', function($q) use ($project) {
+                $q->where('name', $project);
+            });
+        }
+        
+        // Apply client filter
+        if ($client !== 'all') {
+            $query->whereHas('project.client', function($q) use ($client) {
+                $q->where('name', $client);
+            });
+        }
+        
+        // Get all data without pagination
+        $workHours = $query->orderByDesc('date')->orderByDesc('id')->get();
+        
+        return response()->json([
+            'data' => $workHours
+        ]);
+    }
+
     public function report(Request $request)
     {
         $query = WorkHour::with('user', 'project', 'project.client');

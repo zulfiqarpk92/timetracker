@@ -41,12 +41,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:admin'])->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::get('/work-hours/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
+        Route::get('/work-hours/export', [\App\Http\Controllers\WorkHourController::class, 'export'])->name('work-hours.export');
         Route::resource('projects', ProjectController::class);
         Route::resource('clients', ClientController::class);
     });
 
     // Routes accessible to both admin and employee
     Route::resource('work-hours', \App\Http\Controllers\WorkHourController::class)->except(['show']);
+    Route::get('/work-hours-export', [\App\Http\Controllers\WorkHourController::class, 'exportPersonal'])->name('work-hours.export-personal');
 });
 
 require __DIR__.'/auth.php';

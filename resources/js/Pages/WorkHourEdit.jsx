@@ -30,10 +30,10 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
     const workTypes = [
         { label: 'Tracker', value: 'tracker' },
         { label: 'Manual Time', value: 'manual' },
-        { label: 'Test Task', value: 'test_task' },
         { label: 'Fixed Project', value: 'fixed' },
-        { label: 'Office Work', value: 'office_work' },
         { label: 'Outside of Upwork', value: 'outside_of_upwork' },
+        { label: 'Office Work', value: 'office_work' },
+        { label: 'Test Task', value: 'test_task' },
     ];
 
     const handleTrackerFocus = () => {
@@ -44,6 +44,37 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
     const handleProjectFocus = () => {
         setShowProjectOptions(true);
         setShowTrackerOptions(false);
+    };
+
+    const handleWorkTypeChange = (workType) => {
+        // Clear fields that might not be needed for the new work type
+        const newData = {
+            ...editForm.data,
+            work_type: workType,
+        };
+
+        // Clear profile name if not needed for this work type
+        if (!['tracker', 'manual', 'fixed'].includes(workType)) {
+            newData.tracker = '';
+            newData.trackerSearch = '';
+        }
+
+        // Clear project if not needed for this work type
+        if (!['tracker', 'manual', 'fixed', 'outside_of_upwork'].includes(workType)) {
+            newData.project_id = '';
+            newData.projectSearch = '';
+        }
+
+        editForm.setData(newData);
+    };
+
+    // Helper functions to determine field requirements
+    const isProfileNameRequired = () => {
+        return ['tracker', 'manual', 'fixed'].includes(editForm.data.work_type);
+    };
+
+    const isProjectRequired = () => {
+        return ['tracker', 'manual', 'fixed', 'outside_of_upwork'].includes(editForm.data.work_type);
     };
 
     return (
@@ -75,7 +106,7 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
                                             <button
                                                 key={type.value}
                                                 type="button"
-                                                onClick={() => editForm.setData('work_type', type.value)}
+                                                onClick={() => handleWorkTypeChange(type.value)}
                                                 className={`px-4 py-3 rounded-xl font-medium transition-all text-sm ${
                                                     editForm.data.work_type === type.value
                                                         ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
@@ -89,11 +120,29 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
                                     {editForm.errors.work_type && (
                                         <p className="text-red-400 text-sm mt-2">{editForm.errors.work_type}</p>
                                     )}
+                                    
+                                    {/* Field Requirements Info */}
+                                    <div className="mt-4 p-3 bg-blue-500/10 backdrop-blur-xl rounded-lg border border-blue-400/20">
+                                        <p className="text-blue-200 text-sm font-medium mb-1">Required fields for {workTypes.find(wt => wt.value === editForm.data.work_type)?.label}:</p>
+                                        <div className="text-blue-300 text-xs">
+                                            {editForm.data.work_type === 'tracker' && "Profile Name, Project Name, Description, Hours/Minutes, Tracking Date"}
+                                            {editForm.data.work_type === 'manual' && "Profile Name, Project Name, Description, Hours/Minutes, Tracking Date"}
+                                            {editForm.data.work_type === 'fixed' && "Profile Name, Project Name, Description, Hours/Minutes, Tracking Date"}
+                                            {editForm.data.work_type === 'outside_of_upwork' && "Project Name, Description, Hours/Minutes, Tracking Date"}
+                                            {editForm.data.work_type === 'office_work' && "Description, Hours/Minutes, Tracking Date"}
+                                            {editForm.data.work_type === 'test_task' && "Description, Hours/Minutes, Tracking Date"}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className={`grid grid-cols-1 gap-6 ${
+                                    // Adjust grid based on what fields are showing
+                                    isProfileNameRequired() ? 'md:grid-cols-2' : 
+                                    isProjectRequired() ? 'md:grid-cols-1' : 
+                                    'md:grid-cols-2'
+                                }`}>
                                     {/* Profile Name (Tracker) */}
-                                    {!['office_work', 'outside_of_upwork'].includes(editForm.data.work_type) && (
+                                    {['tracker', 'manual', 'fixed'].includes(editForm.data.work_type) && (
                                         <div className="relative">
                                             <label className="block text-sm font-semibold text-white/90 mb-3">
                                                 Profile Name <span className="text-red-400">*</span>
@@ -114,6 +163,7 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
                                                 }}
                                                 onFocus={handleTrackerFocus}
                                                 onBlur={() => setTimeout(() => setShowTrackerOptions(false), 150)}
+                                                required={isProfileNameRequired()}
                                             />
                                             {showTrackerOptions && (
                                                 <div 
@@ -165,75 +215,79 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
                                     </div>
 
                                     {/* Project Name */}
-                                    <div className="relative md:col-span-2">
-                                        <label className="block text-sm font-semibold text-white/90 mb-3">
-                                            Project Name <span className="text-red-400">*</span>
-                                        </label>
-                                        <input
-                                            ref={projectRef}
-                                            type="text"
-                                            placeholder="Search or select project..."
-                                            className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
-                                            value={
-                                                editForm.data.projectSearch ||
-                                                (editForm.data.project_id
-                                                    ? ((() => {
-                                                        const project = projects.find(p => p.id == editForm.data.project_id);
-                                                        if (!project) return '';
-                                                        const clientName = project.client?.name || 'No Client';
-                                                        const projectName = project.name || '';
-                                                        return `${clientName}${projectName ? ' -- ' + projectName : ''}`;
-                                                    })())
-                                                    : ''
-                                                )
-                                            }
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                editForm.setData('projectSearch', val);
-                                                if (val === '') {
-                                                    editForm.setData('project_id', '');
+                                    {['tracker', 'manual', 'fixed', 'outside_of_upwork'].includes(editForm.data.work_type) && (
+                                        <div className={`relative ${
+                                            isProfileNameRequired() ? 'md:col-span-2' : 'md:col-span-1'
+                                        }`}>
+                                            <label className="block text-sm font-semibold text-white/90 mb-3">
+                                                Project Name <span className="text-red-400">*</span>
+                                            </label>
+                                            <input
+                                                ref={projectRef}
+                                                type="text"
+                                                placeholder="Search or select project..."
+                                                className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-white placeholder-white/50"
+                                                value={
+                                                    editForm.data.projectSearch ||
+                                                    (editForm.data.project_id
+                                                        ? ((() => {
+                                                            const project = projects.find(p => p.id == editForm.data.project_id);
+                                                            if (!project) return '';
+                                                            const clientName = project.client?.name || 'No Client';
+                                                            const projectName = project.name || '';
+                                                            return `${clientName}${projectName ? ' -- ' + projectName : ''}`;
+                                                        })())
+                                                        : ''
+                                                    )
                                                 }
-                                                setShowProjectOptions(true);
-                                            }}
-                                            onFocus={handleProjectFocus}
-                                            onBlur={() => setTimeout(() => setShowProjectOptions(false), 150)}
-                                            required
-                                        />
-                                        {showProjectOptions && (
-                                            <div 
-                                                className="absolute z-[99999] bg-slate-800/95 backdrop-blur-xl border border-white/30 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl w-full"
-                                            >
-                                                {projects.filter(project => {
-                                                    const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
-                                                    return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
-                                                }).map(project => (
-                                                    <div
-                                                        key={project.id}
-                                                        className="px-4 py-2 cursor-pointer hover:bg-white/20 text-white transition-colors"
-                                                        onMouseDown={() => {
-                                                            editForm.setData('project_id', project.id);
-                                                            editForm.setData('projectSearch', `${project.client?.name ?? 'No Client'} -- ${project.name}`);
-                                                            setShowProjectOptions(false);
-                                                        }}
-                                                    >
-                                                        {project.client?.name ?? 'No Client'} -- {project.name}
-                                                    </div>
-                                                ))}
-                                                {projects.filter(project => {
-                                                    const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
-                                                    return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
-                                                }).length === 0 && (
-                                                    <div className="px-4 py-2 text-white/60">No projects found</div>
-                                                )}
-                                            </div>
-                                        )}
-                                        {editForm.errors.project && (
-                                            <p className="text-red-400 text-sm mt-2">{editForm.errors.project}</p>
-                                        )}
-                                    </div>
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    editForm.setData('projectSearch', val);
+                                                    if (val === '') {
+                                                        editForm.setData('project_id', '');
+                                                    }
+                                                    setShowProjectOptions(true);
+                                                }}
+                                                onFocus={handleProjectFocus}
+                                                onBlur={() => setTimeout(() => setShowProjectOptions(false), 150)}
+                                                required={isProjectRequired()}
+                                            />
+                                            {showProjectOptions && (
+                                                <div 
+                                                    className="absolute z-[99999] bg-slate-800/95 backdrop-blur-xl border border-white/30 rounded-xl mt-1 max-h-40 overflow-y-auto shadow-2xl w-full"
+                                                >
+                                                    {projects.filter(project => {
+                                                        const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
+                                                        return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
+                                                    }).map(project => (
+                                                        <div
+                                                            key={project.id}
+                                                            className="px-4 py-2 cursor-pointer hover:bg-white/20 text-white transition-colors"
+                                                            onMouseDown={() => {
+                                                                editForm.setData('project_id', project.id);
+                                                                editForm.setData('projectSearch', `${project.client?.name ?? 'No Client'} -- ${project.name}`);
+                                                                setShowProjectOptions(false);
+                                                            }}
+                                                        >
+                                                            {project.client?.name ?? 'No Client'} -- {project.name}
+                                                        </div>
+                                                    ))}
+                                                    {projects.filter(project => {
+                                                        const label = `${project.client?.name ?? 'No Client'} -- ${project.name}`;
+                                                        return !editForm.data.projectSearch || label.toLowerCase().includes(editForm.data.projectSearch.toLowerCase());
+                                                    }).length === 0 && (
+                                                        <div className="px-4 py-2 text-white/60">No projects found</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {editForm.errors.project_id && (
+                                                <p className="text-red-400 text-sm mt-2">{editForm.errors.project_id}</p>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Hours and Minutes */}
-                                    <div>
+                                    <div className={isProfileNameRequired() || isProjectRequired() ? '' : 'md:col-span-1'}>
                                         <label className="block text-sm font-semibold text-white/90 mb-3">
                                             Hours <span className="text-red-400">*</span>
                                         </label>
@@ -256,7 +310,7 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
                                         />
                                     </div>
 
-                                    <div>
+                                    <div className={isProfileNameRequired() || isProjectRequired() ? '' : 'md:col-span-1'}>
                                         <label className="block text-sm font-semibold text-white/90 mb-3">
                                             Minutes <span className="text-red-400">*</span>
                                         </label>
@@ -280,7 +334,11 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], projects =
                                     </div>
 
                                     {/* Total Time Display */}
-                                    <div className="md:col-span-2 p-6 bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-xl rounded-xl border border-white/20">
+                                    <div className={`p-6 bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-xl rounded-xl border border-white/20 ${
+                                        isProfileNameRequired() ? 'md:col-span-2' : 
+                                        isProjectRequired() ? 'md:col-span-1' : 
+                                        'md:col-span-2'
+                                    }`}>
                                         <div className="flex items-center gap-2 text-lg font-semibold text-white">
                                             <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

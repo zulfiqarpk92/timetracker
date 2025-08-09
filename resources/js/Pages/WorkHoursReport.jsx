@@ -79,6 +79,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const [projectSearch, setProjectSearch] = useState('');
     const [clientSearch, setClientSearch] = useState('');
     const [selectedPerPage, setSelectedPerPage] = useState(perPage);
+    const [isExporting, setIsExporting] = useState(false);
     
     // Pagination states for filters
     const [userPage, setUserPage] = useState(1);
@@ -132,22 +133,92 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
             .join(':');
     };
 
-    const exportToCSV = () => {
-        const data = workHours?.data?.map(entry => ({
-            User: entry.user.name,
-            Designation: entry.user.designation || 'N/A',
-            'Work Type': formatWorkType(entry.work_type),
-            Tracker: entry.tracker,
-            Date: entry.date,
-            Project: entry.project?.name || 'No Project',
-            Client: entry.project?.client?.name || 'No Client',
-            Hours: decimalToDuration(entry.hours),
-            Description: entry.description,
-        })) || [];
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'WorkHours');
-        XLSX.writeFile(workbook, 'work_hours_report.csv', { bookType: 'csv' });
+    const exportToCSV = async () => {
+        if (isExporting) return; // Prevent multiple exports
+        
+        setIsExporting(true);
+        setToast('Preparing export data...');
+        
+        try {
+            // Build the same filter parameters as current filters
+            const params = { filter: activeFilter };
+            
+            if (activeFilter === 'custom') {
+                if (customStartDate && customEndDate) {
+                    params.startDate = customStartDate.toISOString().slice(0, 10);
+                    params.endDate = customEndDate.toISOString().slice(0, 10);
+                }
+            } else if (activeFilter !== 'all') {
+                const { start, end } = getDateRange(activeFilter);
+                params.startDate = start;
+                params.endDate = end;
+            }
+            
+            // Apply all active filters
+            if (activeWorkType && activeWorkType !== 'all') {
+                params.workType = activeWorkType;
+            }
+            if (activeUser && activeUser !== 'all') {
+                params.userId = activeUser;
+            }
+            if (activeDesignation && activeDesignation !== 'all') {
+                params.designation = activeDesignation;
+            }
+            if (activeTracker && activeTracker !== 'all') {
+                params.tracker = activeTracker;
+            }
+            if (activeProject && activeProject !== 'all') {
+                params.project = activeProject;
+            }
+            if (activeClient && activeClient !== 'all') {
+                params.client = activeClient;
+            }
+            
+            // Build query string
+            const queryString = new URLSearchParams(params).toString();
+            const url = `${route('work-hours.export')}?${queryString}`;
+            
+            // Fetch all filtered data from dedicated export endpoint
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch export data');
+            }
+            
+            const result = await response.json();
+            const allWorkHours = result.data;
+            
+            // Transform data for export
+            const data = allWorkHours.map(entry => ({
+                User: entry.user.name,
+                Designation: entry.user.designation || 'N/A',
+                'Work Type': formatWorkType(entry.work_type),
+                Tracker: entry.tracker,
+                Date: entry.date,
+                Project: entry.project?.name || 'No Project',
+                Client: entry.project?.client?.name || 'No Client',
+                Hours: decimalToDuration(entry.hours),
+                Description: entry.description,
+            }));
+            
+            // Create and download CSV
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'WorkHours');
+            XLSX.writeFile(workbook, 'work_hours_report.csv', { bookType: 'csv' });
+            
+            setToast(`Successfully exported ${data.length} entries to CSV`);
+        } catch (error) {
+            console.error('Export error:', error);
+            setToast('Failed to export data. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const handleDelete = (id) => {
@@ -374,12 +445,24 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     
                                     <button
                                         onClick={exportToCSV}
-                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-xl"
+                                        disabled={isExporting}
+                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl backdrop-blur-xl"
                                     >
-                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        Export to CSV
+                                        {isExporting ? (
+                                            <>
+                                                <svg className="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                Exporting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                Export to CSV
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>
