@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WorkHour;
-use App\Models\Project;
+use App\Models\Client;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -42,19 +42,19 @@ class DashboardController extends Controller
             ? round((($thisWeekHours - $lastWeekHours) / $lastWeekHours) * 100)
             : ($thisWeekHours > 0 ? 100 : 0);
         
-        // Get unique projects count for this month
-        $thisMonthProjects = (clone $userWorkHours)
+        // Get unique clients count for this month
+        $thisMonthClients = (clone $userWorkHours)
             ->whereBetween('date', [$monthStart->format('Y-m-d'), $today->format('Y-m-d')])
-            ->distinct('project_id')
-            ->count('project_id');
+            ->distinct('client_id')
+            ->count('client_id');
         
-        // Get last month's project count for comparison
-        $lastMonthProjects = (clone $userWorkHours)
+        // Get last month's client count for comparison
+        $lastMonthClients = (clone $userWorkHours)
             ->whereBetween('date', [$lastMonthStart->format('Y-m-d'), $lastMonthEnd->format('Y-m-d')])
-            ->distinct('project_id')
-            ->count('project_id');
+            ->distinct('client_id')
+            ->count('client_id');
         
-        $newProjectsThisMonth = max(0, $thisMonthProjects - $lastMonthProjects);
+        $newClientsThisMonth = max(0, $thisMonthClients - $lastMonthClients);
         
         // Calculate efficiency (example: percentage of work days with logged hours)
         $workDaysThisMonth = $this->getWorkDaysInMonth($monthStart, $today);
@@ -82,11 +82,11 @@ class DashboardController extends Controller
                     'change' => $weekPercentageChange,
                     'changeLabel' => $weekPercentageChange >= 0 ? "+{$weekPercentageChange}% from last week" : "{$weekPercentageChange}% from last week"
                 ],
-                'activeProjects' => [
-                    'value' => $thisMonthProjects,
+                'activeClients' => [
+                    'value' => $thisMonthClients,
                     'label' => 'Active',
-                    'change' => $newProjectsThisMonth,
-                    'changeLabel' => $newProjectsThisMonth > 0 ? "{$newProjectsThisMonth} new this month" : "No new projects"
+                    'change' => $newClientsThisMonth,
+                    'changeLabel' => $newClientsThisMonth > 0 ? "{$newClientsThisMonth} new this month" : "No new clients"
                 ],
                 'efficiency' => [
                     'value' => "{$efficiency}%",

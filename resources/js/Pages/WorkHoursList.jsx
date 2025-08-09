@@ -23,11 +23,19 @@ function Toast({ message, type = 'success', onClose }) {
     );
 }
 
+// Helper function to format date in local timezone as YYYY-MM-DD
+const formatDateLocal = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const getDateRange = (filter) => {
     const today = new Date();
     let start, end;
     if (filter === 'today') {
-        start = end = today.toISOString().slice(0, 10);
+        start = end = formatDateLocal(today);
     } else if (filter === 'week') {
         // Get Monday as the first day of the current week
         const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
@@ -41,18 +49,21 @@ const getDateRange = (filter) => {
         const sunday = new Date(monday);
         sunday.setDate(sunday.getDate() + 6);
         
-        start = monday.toISOString().slice(0, 10);
-        end = sunday.toISOString().slice(0, 10);
+        start = formatDateLocal(monday);
+        end = formatDateLocal(sunday);
     } else if (filter === 'month') {
         // First day of current month
-        start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         // Last day of current month
-        end = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
+        start = formatDateLocal(firstDay);
+        end = formatDateLocal(lastDay);
     }
     return { start, end };
 };
 
-export default function WorkHoursList({ auth, workHours, flash, filter = 'week', startDate = '', endDate = '', workType = 'all', tracker = 'all', project = 'all', client = 'all', perPage = 15 }) {
+export default function WorkHoursList({ auth, workHours, flash, filter = 'week', startDate = '', endDate = '', workType = 'all', tracker = 'all', client = 'all', perPage = 15 }) {
     // If workHours is not available or malformed, show loading state
     if (!workHours || typeof workHours !== 'object') {
         return (
@@ -77,7 +88,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
     const [activeFilter, setActiveFilter] = useState(filter);
     const [activeWorkType, setActiveWorkType] = useState(workType);
     const [activeTracker, setActiveTracker] = useState(tracker);
-    const [activeProject, setActiveProject] = useState(project);
     const [activeClient, setActiveClient] = useState(client);
     const [activePerPage, setActivePerPage] = useState(perPage);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
@@ -86,7 +96,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
 
     // Search state for filters
     const [trackerSearch, setTrackerSearch] = useState('');
-    const [projectSearch, setProjectSearch] = useState('');
     const [clientSearch, setClientSearch] = useState('');
 
     // Filter panel state
@@ -95,7 +104,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
         date: false,
         workType: false,
         tracker: false,
-        project: false,
         client: false
     });
     const [sidebarLayout, setSidebarLayout] = useState(false);
@@ -110,7 +118,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             // Clear search when closing filters
             if (prev[filterName]) { // If we're closing the filter
                 if (filterName === 'tracker') setTrackerSearch('');
-                if (filterName === 'project') setProjectSearch('');
                 if (filterName === 'client') setClientSearch('');
             }
             
@@ -147,15 +154,9 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
         };
     };
 
-    const getUniqueProjects = () => {
-        if (!workHours?.data || !Array.isArray(workHours.data)) return [];
-        const projects = [...new Set(workHours.data.map(entry => entry.project?.name).filter(Boolean))];
-        return projects.sort();
-    };
-
     const getUniqueClients = () => {
         if (!workHours?.data || !Array.isArray(workHours.data)) return [];
-        const clients = [...new Set(workHours.data.map(entry => entry.project?.client?.name).filter(Boolean))];
+        const clients = [...new Set(workHours.data.map(entry => entry.client?.name).filter(Boolean))];
         return clients.sort();
     };
 
@@ -186,8 +187,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             if (activeFilter === 'custom') {
                 if (customStartDate && customEndDate) {
                     params.filter = 'custom';
-                    params.startDate = customStartDate.toISOString().slice(0, 10);
-                    params.endDate = customEndDate.toISOString().slice(0, 10);
+                    params.startDate = formatDateLocal(customStartDate);
+                    params.endDate = formatDateLocal(customEndDate);
                 }
             } else if (activeFilter !== 'all') {
                 const { start, end } = getDateRange(activeFilter);
@@ -202,9 +203,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             }
             if (activeTracker && activeTracker !== 'all') {
                 params.tracker = activeTracker;
-            }
-            if (activeProject && activeProject !== 'all') {
-                params.project = activeProject;
             }
             if (activeClient && activeClient !== 'all') {
                 params.client = activeClient;
@@ -241,8 +239,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                 'Work Type': formatWorkType(entry.work_type),
                 Tracker: entry.tracker,
                 Date: entry.date,
-                Project: entry.project?.name || 'No Project',
-                Client: entry.project?.client?.name || 'No Client',
+                Project: entry.client?.name || 'No Client',
+                Client: entry.client?.name || 'No Client',
                 Hours: decimalToDuration(entry.hours),
                 Description: entry.description,
             }));
@@ -294,7 +292,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
 
     const closeToast = () => setToast('');
 
-    const handleFilter = (filter, workTypeFilter = activeWorkType, trackerFilter = activeTracker, projectFilter = activeProject, clientFilter = activeClient) => {
+    const handleFilter = (filter, workTypeFilter = activeWorkType, trackerFilter = activeTracker, clientFilter = activeClient) => {
         setActiveFilter(filter);
         
         const params = {};
@@ -303,8 +301,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
         if (filter === 'custom') {
             if (customStartDate && customEndDate) {
                 params.filter = 'custom';
-                params.startDate = customStartDate.toISOString().slice(0, 10);
-                params.endDate = customEndDate.toISOString().slice(0, 10);
+                params.startDate = formatDateLocal(customStartDate);
+                params.endDate = formatDateLocal(customEndDate);
             } else {
                 return; // Don't proceed if custom dates aren't set
             }
@@ -321,9 +319,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
         }
         if (trackerFilter && trackerFilter !== 'all') {
             params.tracker = trackerFilter;
-        }
-        if (projectFilter && projectFilter !== 'all') {
-            params.project = projectFilter;
         }
         if (clientFilter && clientFilter !== 'all') {
             params.client = clientFilter;
@@ -357,7 +352,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             ...prev,
             workType: false
         }));
-        handleFilter(activeFilter, type, activeTracker, activeProject, activeClient);
+        handleFilter(activeFilter, type, activeTracker, activeClient);
     };
 
     const handleTrackerFilter = (tracker) => {
@@ -368,18 +363,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             ...prev,
             tracker: false
         }));
-        handleFilter(activeFilter, activeWorkType, tracker, activeProject, activeClient);
-    };
-
-    const handleProjectFilter = (project) => {
-        setActiveProject(project);
-        setProjectSearch(''); // Clear search after selection
-        // Close the expanded filter after selection
-        setExpandedFilters(prev => ({
-            ...prev,
-            project: false
-        }));
-        handleFilter(activeFilter, activeWorkType, activeTracker, project, activeClient);
+        handleFilter(activeFilter, activeWorkType, tracker, activeClient);
     };
 
     const handleClientFilter = (client) => {
@@ -390,7 +374,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             ...prev,
             client: false
         }));
-        handleFilter(activeFilter, activeWorkType, activeTracker, activeProject, client);
+        handleFilter(activeFilter, activeWorkType, activeTracker, client);
     };
 
     const handlePerPageChange = (newPerPage) => {
@@ -403,8 +387,8 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             if (activeFilter === 'custom') {
                 if (customStartDate && customEndDate) {
                     params.filter = 'custom';
-                    params.startDate = customStartDate.toISOString().slice(0, 10);
-                    params.endDate = customEndDate.toISOString().slice(0, 10);
+                    params.startDate = formatDateLocal(customStartDate);
+                    params.endDate = formatDateLocal(customEndDate);
                 }
             } else {
                 const dateRange = getDateRange(activeFilter);
@@ -419,9 +403,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
         }
         if (activeTracker && activeTracker !== 'all') {
             params.tracker = activeTracker;
-        }
-        if (activeProject && activeProject !== 'all') {
-            params.project = activeProject;
         }
         if (activeClient && activeClient !== 'all') {
             params.client = activeClient;
@@ -604,6 +585,10 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                                     calendarClassName="bg-white border border-gray-300 rounded-lg shadow-lg"
                                                     wrapperClassName="relative z-[99999]"
                                                     popperPlacement="bottom-start"
+                                                    strictParsing={true}
+                                                    showTimeSelect={false}
+                                                    todayButton="Today"
+                                                    calendarStartDay={1}
                                                     popperModifiers={[
                                                         {
                                                             name: 'offset',
@@ -635,6 +620,10 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                                     calendarClassName="bg-white border border-gray-300 rounded-lg shadow-lg"
                                                     wrapperClassName="relative z-[99999]"
                                                     popperPlacement="bottom-start"
+                                                    strictParsing={true}
+                                                    showTimeSelect={false}
+                                                    todayButton="Today"
+                                                    calendarStartDay={1}
                                                     popperModifiers={[
                                                         {
                                                             name: 'offset',
@@ -704,19 +693,16 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                             onClick={() => {
                                                 setActiveWorkType('all');
                                                 setActiveTracker('all');
-                                                setActiveProject('all');
                                                 setActiveClient('all');
                                                 setTrackerSearch('');
-                                                setProjectSearch('');
                                                 setClientSearch('');
                                                 setExpandedFilters({
                                                     date: false,
                                                     workType: false,
                                                     tracker: false,
-                                                    project: false,
                                                     client: false
                                                 });
-                                                handleFilter(activeFilter, 'all', 'all', 'all', 'all');
+                                                handleFilter(activeFilter, 'all', 'all', 'all');
                                             }}
                                             className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg text-sm backdrop-blur-xl border border-white/20"
                                         >
@@ -729,7 +715,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                 </div>
 
                                 {/* Active Additional Filters Summary */}
-                                {(activeWorkType !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
+                                {(activeWorkType !== 'all' || activeTracker !== 'all' || activeClient !== 'all') && (
                                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
                                         <h3 className="text-sm font-semibold text-blue-800 mb-2">Active Additional Filters:</h3>
                                         <div className="flex gap-2 flex-wrap text-xs">
@@ -741,11 +727,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                             {activeTracker !== 'all' && (
                                                 <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded-md capitalize">
                                                     Tracker: {activeTracker}
-                                                </span>
-                                            )}
-                                            {activeProject !== 'all' && (
-                                                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-md">
-                                                    Project: {activeProject.length > 15 ? `${activeProject.substring(0, 15)}...` : activeProject}
                                                 </span>
                                             )}
                                             {activeClient !== 'all' && (
@@ -843,64 +824,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                             )}
                                         </div>
 
-                                        {/* Project Filter */}
-                                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                                            <button
-                                                onClick={() => toggleFilter('project')}
-                                                className="w-full flex items-center justify-between p-4 text-left focus:outline-none"
-                                            >
-                                                <h3 className="text-sm font-semibold text-purple-800">Filter by Project</h3>
-                                                <svg className={`w-5 h-5 text-purple-600 transform transition-transform ${expandedFilters.project ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </button>
-                                            {expandedFilters.project && (
-                                                <div className="px-4 pb-4">
-                                                    <div className="space-y-3">
-                                                        <div className="relative">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Search projects..."
-                                                                className="w-full px-4 py-2 pl-10 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                                                value={projectSearch}
-                                                                onChange={(e) => setProjectSearch(e.target.value)}
-                                                            />
-                                                            <svg className="w-4 h-4 text-purple-500 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                                            </svg>
-                                                        </div>
-                                                        {projectSearch && (
-                                                            <div className="text-xs text-purple-600">
-                                                                {getUniqueProjects().filter(project => project.toLowerCase().includes(projectSearch.toLowerCase())).length} project(s) found
-                                                            </div>
-                                                        )}
-                                                        <div className="max-h-48 overflow-y-auto">
-                                                            <div className="space-y-1">
-                                                                <button 
-                                                                    onClick={() => handleProjectFilter('all')} 
-                                                                    className={`w-full text-left px-3 py-2 rounded-md transition-all ${activeProject === 'all' ? 'bg-purple-100 text-purple-800 font-medium' : 'hover:bg-purple-50 text-purple-700'}`}
-                                                                >
-                                                                    All Projects
-                                                                </button>
-                                                                {getUniqueProjects()
-                                                                    .filter(project => project.toLowerCase().includes(projectSearch.toLowerCase()))
-                                                                    .map(project => (
-                                                                    <button 
-                                                                        key={project} 
-                                                                        onClick={() => handleProjectFilter(project)} 
-                                                                        className={`w-full text-left px-3 py-2 rounded-md transition-all ${activeProject === project ? 'bg-purple-100 text-purple-800 font-medium' : 'hover:bg-purple-50 text-purple-700'}`}
-                                                                        title={project}
-                                                                    >
-                                                                        {project}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
                                         {/* Client Filter */}
                                         <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
                                             <button
@@ -977,7 +900,6 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                                     <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Work Type</th>
                                                     <th className="w-24 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Tracker</th>
                                                     <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Date</th>
-                                                    <th className="w-36 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Project</th>
                                                     <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
                                                     <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
                                                     <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
@@ -987,7 +909,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                             <tbody className="divide-y divide-white/5">
                                                 {!workHours?.data || !Array.isArray(workHours.data) || workHours.data.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={9} className="px-6 py-12 text-center">
+                                                        <td colSpan={8} className="px-6 py-12 text-center">
                                                             <div className="flex flex-col items-center">
                                                                 <svg className="w-12 h-12 text-white/40 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1024,8 +946,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                                         </td>
                                                         <td className="px-6 py-4 text-sm text-white capitalize truncate font-medium">{entry.tracker}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">{entry.date}</td>
-                                                        <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.project?.name}>{entry.project?.name}</td>
-                                                        <td className="px-6 py-4 text-sm text-white/70 truncate" title={entry.project?.client?.name}>{entry.project?.client?.name}</td>
+                                                        <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.client?.name}>{entry.client?.name || 'No Client'}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-400">{timeFormat(entry.hours)}</td>
                                                         <td className="px-6 py-4 text-sm text-white/80 max-w-xs" title={entry.description}>
                                                             <div className="truncate">
@@ -1064,7 +985,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                             {workHours?.data && Array.isArray(workHours.data) && workHours.data.length > 0 && (
                                             <tfoot className="bg-gradient-to-r from-white/5 to-green-500/20 backdrop-blur-xl">
                                                 <tr>
-                                                    <td colSpan={6} className="px-6 py-4"></td>
+                                                    <td colSpan={5} className="px-6 py-4"></td>
                                                     <td className="px-6 py-4 font-bold text-right text-green-400 text-lg">
                                                         Total: {timeFormat(workHours.data.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                                     </td>

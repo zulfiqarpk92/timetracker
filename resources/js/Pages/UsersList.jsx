@@ -530,6 +530,9 @@ export default function UsersList({ auth, users, flash, filters = {}, filterOpti
                                             <th className="w-24 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
                                                 Role
                                             </th>
+                                            <th className="w-40 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                                                Weekly Hours Worked
+                                            </th>
                                             <th className="w-40 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-blue-500/30 to-purple-600/30 backdrop-blur-xl">
                                                 Actions
                                             </th>
@@ -538,7 +541,7 @@ export default function UsersList({ auth, users, flash, filters = {}, filterOpti
                                     <tbody className="bg-white/5 backdrop-blur-xl divide-y divide-white/10">
                                         {(!users?.data || users.data.length === 0) ? (
                                             <tr>
-                                                <td colSpan={7} className="px-6 py-12 text-center">
+                                                <td colSpan={8} className="px-6 py-12 text-center">
                                                     <div className="text-white/60">
                                                         <svg className="mx-auto h-12 w-12 text-white/40 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8v.01M6 8v.01" />
@@ -581,6 +584,13 @@ export default function UsersList({ auth, users, flash, filters = {}, filterOpti
                                                     }`}>
                                                         {user.role}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                                    <div className="flex items-center">
+                                                        <span className="inline-flex px-3 py-1 text-xs font-medium bg-orange-500/20 text-orange-300 rounded-full backdrop-blur-xl border border-orange-400/30 font-mono">
+                                                            {user.weekly_hours_worked || '00:00'}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white/5 backdrop-blur-xl border-l border-white/10">
                                                     <div className="flex space-x-2">

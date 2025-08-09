@@ -70,19 +70,6 @@ export default function Authenticated({ user, header, children }) {
                                 )}
                                 
                                 {user?.role === 'admin' && (
-                                    <NavLink href={route('projects.index')} active={['projects.index', 'projects.create', 'projects.edit'].some(r => route().current(r))}>
-                                        <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-orange-200/50">
-                                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 group-hover:from-orange-600 group-hover:to-orange-700 shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                                </svg>
-                                            </div>
-                                            <span className="font-semibold text-slate-700 group-hover:text-orange-700 transition-colors duration-300">Projects</span>
-                                        </div>
-                                    </NavLink>
-                                )}
-                                
-                                {user?.role === 'admin' && (
                                     <NavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
                                         <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-teal-50 hover:to-cyan-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-teal-200/50">
                                             <div className="p-1.5 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 group-hover:from-teal-600 group-hover:to-teal-700 shadow-sm group-hover:shadow-md transition-all duration-300">
@@ -210,15 +197,6 @@ export default function Authenticated({ user, header, children }) {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M15 7a3 3 0 11-6 0 3 3 0 616 0z" />
                                         </svg>
                                         <span>Clients</span>
-                                    </div>
-                                </ResponsiveNavLink>
-                                
-                                <ResponsiveNavLink href={route('projects.index')} active={['projects.index', 'projects.create', 'projects.edit'].some(r => route().current(r))}>
-                                    <div className="flex items-center space-x-3">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 712 2v6a2 2 0 71-2 2H5a2 2 0 71-2-2v-6a2 2 0 712-2m14 0V9a2 2 0 70-2-2M5 11V9a2 2 0 712-2" />
-                                        </svg>
-                                        <span>Projects</span>
                                     </div>
                                 </ResponsiveNavLink>
                                 

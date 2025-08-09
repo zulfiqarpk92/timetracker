@@ -15,7 +15,7 @@ class WorkHour extends Model
         'hours',
         'description',
         'work_type',
-        'project_id',
+        'client_id',
         'tracker',
     ];
 
@@ -24,8 +24,8 @@ class WorkHour extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function project()
+    public function client()
     {
-        return $this->belongsTo(Project::class, 'project_id');
+        return $this->belongsTo(Client::class, 'client_id');
     }
 }

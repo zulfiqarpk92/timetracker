@@ -53,6 +53,26 @@ class UserController extends Controller
         $users = $query->orderBy('name')
             ->paginate($perPage)
             ->appends($request->query());
+        
+        // Calculate weekly hours for each user and format as HH:MM
+        $startOfWeek = now()->startOfWeek()->format('Y-m-d');
+        $endOfWeek = now()->endOfWeek()->format('Y-m-d');
+        
+        $users->getCollection()->transform(function ($user) use ($startOfWeek, $endOfWeek) {
+            // Get the sum of hours for this week
+            $weeklyHours = $user->workHours()
+                ->whereBetween('date', [$startOfWeek, $endOfWeek])
+                ->sum('hours');
+            
+            // Convert decimal hours to HH:MM format
+            $hours = floor($weeklyHours);
+            $minutes = round(($weeklyHours - $hours) * 60);
+            
+            // Format as HH:MM
+            $user->weekly_hours_worked = sprintf('%02d:%02d', $hours, $minutes);
+            
+            return $user;
+        });
             
         // Get all unique designations and roles for filter dropdowns
         $allDesignations = User::whereNotNull('designation')

@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ClientController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -42,7 +41,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::get('/work-hours/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
         Route::get('/work-hours/export', [\App\Http\Controllers\WorkHourController::class, 'export'])->name('work-hours.export');
-        Route::resource('projects', ProjectController::class);
         Route::resource('clients', ClientController::class);
     });
 

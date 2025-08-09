@@ -18,8 +18,8 @@ class Client extends Model
         'tags' => 'array',
     ];
 
-    public function projects()
+    public function workHours()
     {
-        return $this->hasMany(Project::class);
+        return $this->hasMany(WorkHour::class);
     }
 }

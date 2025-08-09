@@ -44,23 +44,47 @@ function FilterPagination({ currentPage, totalPages, onPageChange }) {
     );
 }
 
+// Helper function to format date in local timezone as YYYY-MM-DD
+const formatDateLocal = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const getDateRange = (filter) => {
     const today = new Date();
     let start, end;
     if (filter === 'today') {
-        start = end = today.toISOString().slice(0, 10);
+        start = end = formatDateLocal(today);
     } else if (filter === 'week') {
-        const first = today.getDate() - today.getDay();
-        start = new Date(today.setDate(first)).toISOString().slice(0, 10);
-        end = new Date().toISOString().slice(0, 10);
+        // Get Monday as the first day of the current week
+        const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If Sunday, Monday was 6 days ago
+        
+        // Calculate Monday of current week using local date methods
+        const monday = new Date(today);
+        monday.setDate(monday.getDate() - daysFromMonday);
+        
+        // Calculate Sunday of current week (6 days after Monday)
+        const sunday = new Date(monday);
+        sunday.setDate(sunday.getDate() + 6);
+        
+        start = formatDateLocal(monday);
+        end = formatDateLocal(sunday);
     } else if (filter === 'month') {
-        start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-        end = new Date().toISOString().slice(0, 10);
+        // First day of current month
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        // Last day of current month
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
+        start = formatDateLocal(firstDay);
+        end = formatDateLocal(lastDay);
     }
     return { start, end };
 };
 
-export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all', designation = 'all', tracker = 'all', project = 'all', client = 'all', perPage = 15 }) {
+export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all', designation = 'all', tracker = 'all', client = 'all', perPage = 15 }) {
     const [deleteId, setDeleteId] = useState(null);
     const [toast, setToast] = useState(flash?.success || '');
     const [activeFilter, setActiveFilter] = useState(filter);
@@ -68,7 +92,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const [activeUser, setActiveUser] = useState(userId);
     const [activeDesignation, setActiveDesignation] = useState(designation);
     const [activeTracker, setActiveTracker] = useState(tracker);
-    const [activeProject, setActiveProject] = useState(project);
     const [activeClient, setActiveClient] = useState(client);
     const [customStartDate, setCustomStartDate] = useState(startDate ? new Date(startDate) : null);
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
@@ -76,14 +99,12 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [designationSearch, setDesignationSearch] = useState('');
     const [trackerSearch, setTrackerSearch] = useState('');
-    const [projectSearch, setProjectSearch] = useState('');
     const [clientSearch, setClientSearch] = useState('');
     const [selectedPerPage, setSelectedPerPage] = useState(perPage);
     const [isExporting, setIsExporting] = useState(false);
     
     // Pagination states for filters
     const [userPage, setUserPage] = useState(1);
-    const [projectPage, setProjectPage] = useState(1);
     const [clientPage, setClientPage] = useState(1);
     const itemsPerPage = 10;
 
@@ -111,13 +132,8 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         return trackers.sort();
     };
 
-    const getUniqueProjects = () => {
-        const projects = [...new Set(workHours?.data?.map(entry => entry.project?.name).filter(Boolean) || [])];
-        return projects.sort();
-    };
-
     const getUniqueClients = () => {
-        const clients = [...new Set(workHours?.data?.map(entry => entry.project?.client?.name).filter(Boolean) || [])];
+        const clients = [...new Set(workHours?.data?.map(entry => entry.client?.name).filter(Boolean) || [])];
         return clients.sort();
     };
 
@@ -167,9 +183,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
             if (activeTracker && activeTracker !== 'all') {
                 params.tracker = activeTracker;
             }
-            if (activeProject && activeProject !== 'all') {
-                params.project = activeProject;
-            }
             if (activeClient && activeClient !== 'all') {
                 params.client = activeClient;
             }
@@ -200,8 +213,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                 'Work Type': formatWorkType(entry.work_type),
                 Tracker: entry.tracker,
                 Date: entry.date,
-                Project: entry.project?.name || 'No Project',
-                Client: entry.project?.client?.name || 'No Client',
+                Client: entry.client?.name || 'No Client',
                 Hours: decimalToDuration(entry.hours),
                 Description: entry.description,
             }));
@@ -267,19 +279,13 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     const paginatedUsers = paginateItems(filteredUsers, userPage, itemsPerPage);
     const totalUserPages = getTotalPages(filteredUsers.length, itemsPerPage);
 
-    const filteredProjects = getUniqueProjects().filter(project => 
-        project.toLowerCase().includes(projectSearch.toLowerCase())
-    );
-    const paginatedProjects = paginateItems(filteredProjects, projectPage, itemsPerPage);
-    const totalProjectPages = getTotalPages(filteredProjects.length, itemsPerPage);
-
     const filteredClients = getUniqueClients().filter(client => 
         client.toLowerCase().includes(clientSearch.toLowerCase())
     );
     const paginatedClients = paginateItems(filteredClients, clientPage, itemsPerPage);
     const totalClientPages = getTotalPages(filteredClients.length, itemsPerPage);
 
-    const handleFilter = (filter, workTypeFilter = activeWorkType, userFilter = activeUser, designationFilter = activeDesignation, trackerFilter = activeTracker, projectFilter = activeProject, clientFilter = activeClient) => {
+    const handleFilter = (filter, workTypeFilter = activeWorkType, userFilter = activeUser, designationFilter = activeDesignation, trackerFilter = activeTracker, clientFilter = activeClient) => {
         setActiveFilter(filter);
         const params = { filter, perPage: selectedPerPage };
         if (filter === 'custom') {
@@ -303,9 +309,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         }
         if (trackerFilter && trackerFilter !== 'all') {
             params.tracker = trackerFilter;
-        }
-        if (projectFilter && projectFilter !== 'all') {
-            params.project = projectFilter;
         }
         if (clientFilter && clientFilter !== 'all') {
             params.client = clientFilter;
@@ -334,16 +337,10 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, tracker);
     };
 
-    const handleProjectFilter = (project) => {
-        setActiveProject(project);
-        setProjectSearch('');
-        handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, activeTracker, project);
-    };
-
     const handleClientFilter = (client) => {
         setActiveClient(client);
         setClientSearch('');
-        handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, activeTracker, activeProject, client);
+        handleFilter(activeFilter, activeWorkType, activeUser, activeDesignation, activeTracker, client);
     };
 
     const handlePerPageChange = (newPerPage) => {
@@ -367,7 +364,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
         if (activeUser !== 'all') params.userId = activeUser;
         if (activeDesignation !== 'all') params.designation = activeDesignation;
         if (activeTracker !== 'all') params.tracker = activeTracker;
-        if (activeProject !== 'all') params.project = activeProject;
         if (activeClient !== 'all') params.client = activeClient;
         
         router.get(route('work-hours.report'), params, {
@@ -532,7 +528,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     </div>
 
                                     {/* Active Filters Summary - Takes up 1/3 of the space */}
-                                    {(activeFilter !== 'all' || activeWorkType !== 'all' || activeUser !== 'all' || activeDesignation !== 'all' || activeTracker !== 'all' || activeProject !== 'all' || activeClient !== 'all') && (
+                                    {(activeFilter !== 'all' || activeWorkType !== 'all' || activeUser !== 'all' || activeDesignation !== 'all' || activeTracker !== 'all' || activeClient !== 'all') && (
                                         <div className="lg:col-span-1 bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
                                             <div className="flex items-center justify-between mb-3">
                                                 <h3 className="text-sm font-semibold text-white">Active Filters</h3>
@@ -543,7 +539,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                         setActiveUser('all');
                                                         setActiveDesignation('all');
                                                         setActiveTracker('all');
-                                                        setActiveProject('all');
                                                         setActiveClient('all');
                                                         setCustomStartDate(null);
                                                         setCustomEndDate(null);
@@ -593,12 +588,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                         <span>{activeTracker}</span>
                                                     </div>
                                                 )}
-                                                {activeProject !== 'all' && (
-                                                    <div className="inline-flex items-center px-2 py-1 bg-pink-500/20 text-pink-300 rounded-lg backdrop-blur-xl border border-pink-400/20 text-xs">
-                                                        <span className="font-medium mr-1">Project:</span>
-                                                        <span title={activeProject}>{activeProject.length > 12 ? `${activeProject.substring(0, 12)}...` : activeProject}</span>
-                                                    </div>
-                                                )}
                                                 {activeClient !== 'all' && (
                                                     <div className="inline-flex items-center px-2 py-1 bg-teal-500/20 text-teal-300 rounded-lg backdrop-blur-xl border border-teal-400/20 text-xs">
                                                         <span className="font-medium mr-1">Client:</span>
@@ -641,7 +630,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                         </div>
 
                                         {/* Secondary Filters Grid */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                             {/* User Filter */}
                                             <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
                                                 <h3 className="text-sm font-semibold text-white mb-3">Filter by User</h3>
@@ -759,51 +748,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                 </div>
                                             </div>
 
-                                            {/* Project Filter */}
-                                            <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
-                                                <h3 className="text-sm font-semibold text-white mb-3">Filter by Project</h3>
-                                                <div className="space-y-2">
-                                                    <div className="relative">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Search projects..."
-                                                            className="w-full px-3 py-2 text-sm bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-300"
-                                                            value={projectSearch}
-                                                            onChange={(e) => {
-                                                                setProjectSearch(e.target.value);
-                                                                setProjectPage(1); // Reset to first page when searching
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <div className="max-h-32 overflow-y-auto space-y-1">
-                                                        <button 
-                                                            onClick={() => handleProjectFilter('all')} 
-                                                            className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeProject === 'all' ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
-                                                        >
-                                                            All Projects
-                                                        </button>
-                                                        {paginatedProjects.map(project => (
-                                                            <button 
-                                                                key={project} 
-                                                                onClick={() => handleProjectFilter(project)} 
-                                                                className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${activeProject === project ? 'bg-white/20 text-blue-300 font-medium' : 'hover:bg-white/10 text-white'}`}
-                                                                title={project}
-                                                            >
-                                                                {project}
-                                                            </button>
-                                                        ))}
-                                                        {filteredProjects.length === 0 && projectSearch && (
-                                                            <div className="px-3 py-2 text-gray-400 text-sm">No projects found</div>
-                                                        )}
-                                                    </div>
-                                                    <FilterPagination 
-                                                        currentPage={projectPage}
-                                                        totalPages={totalProjectPages}
-                                                        onPageChange={setProjectPage}
-                                                    />
-                                                </div>
-                                            </div>
-
                                             {/* Client Filter */}
                                             <div className="bg-white/10 backdrop-blur-xl p-4 rounded-xl border border-white/20">
                                                 <h3 className="text-sm font-semibold text-white mb-3">Filter by Client</h3>
@@ -861,7 +805,6 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Work Type</th>
                                             <th className="w-24 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Tracker</th>
                                             <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Date</th>
-                                            <th className="w-36 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Project</th>
                                             <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
                                             <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
@@ -880,8 +823,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-white capitalize truncate font-medium">{entry.tracker}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">{entry.date}</td>
-                                                <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.project?.name || 'No Project'}>{entry.project?.name || 'No Project'}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-300 truncate" title={entry.project?.client?.name || 'No Client'}>{entry.project?.client?.name || 'No Client'}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-300 truncate" title={entry.client?.name || 'No Client'}>{entry.client?.name || 'No Client'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-400">{timeFormat(entry.hours)}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-300 relative group">
                                                     <div className="max-w-xs truncate">
@@ -923,7 +865,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                             </tr>
                                         )) : (
                                             <tr>
-                                                <td colSpan={10} className="px-6 py-8 text-center text-white/60">
+                                                <td colSpan={9} className="px-6 py-8 text-center text-white/60">
                                                     <div className="flex flex-col items-center">
                                                         <svg className="w-12 h-12 text-white/40 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -937,7 +879,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                                     </tbody>
                                 <tfoot className="bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-t border-white/20">
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-4"></td>
+                                        <td colSpan={6} className="px-6 py-4"></td>
                                         <td className="px-6 py-4 font-bold text-right text-blue-300 text-lg">
                                             Total: {timeFormat(workHours?.data?.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2) || 0)}
                                         </td>

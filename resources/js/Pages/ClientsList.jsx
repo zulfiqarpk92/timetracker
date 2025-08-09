@@ -170,7 +170,7 @@ export default function ClientsList({ auth, clients, flash, filters = {} }) {
                                             <th className="w-16 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">ID</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Name</th>
                                             <th className="w-48 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Tags</th>
-                                            <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Projects</th>
+                                            <th className="w-40 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Weekly Hours Worked</th>
                                             <th className="w-40 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 backdrop-blur-xl">Actions</th>
                                         </tr>
                                     </thead>
@@ -196,9 +196,11 @@ export default function ClientsList({ auth, clients, flash, filters = {} }) {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                                    <span className="inline-flex px-3 py-1 text-xs font-medium bg-purple-500/30 text-purple-200 rounded-full backdrop-blur-xl border border-purple-400/30">
-                                                        {client.projects_count ?? 0} Projects
-                                                    </span>
+                                                    <div className="flex items-center">
+                                                        <span className="inline-flex px-3 py-1 text-xs font-medium bg-blue-500/20 text-blue-300 rounded-full backdrop-blur-xl border border-blue-400/30 font-mono">
+                                                            {client.weekly_hours_worked || '00:00'}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium sticky right-0 bg-white/10 backdrop-blur-xl">
                                                     <div className="flex space-x-2">
@@ -214,7 +216,7 @@ export default function ClientsList({ auth, clients, flash, filters = {} }) {
                                         ))}
                                         {(!clients?.data || clients.data.length === 0) && (
                                             <tr>
-                                                <td colSpan={4} className="px-6 py-12 text-center">
+                                                <td colSpan={5} className="px-6 py-12 text-center">
                                                     <div className="flex flex-col items-center">
                                                         <svg className="w-12 h-12 text-white/40 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

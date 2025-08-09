@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
+use App\Models\Client;
 use App\Models\WorkHour;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,7 +21,7 @@ class WorkHourController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = WorkHour::with('user', 'project', 'project.client');
+        $query = WorkHour::with('user', 'client');
         
         // WorkHoursList is for personal work diary - everyone sees only their own entries
         $query->where('user_id', $user->id);
@@ -31,7 +31,6 @@ class WorkHourController extends Controller
         $endDate = $request->input('endDate');
         $workType = $request->input('workType', 'all');
         $tracker = $request->input('tracker', 'all');
-        $project = $request->input('project', 'all');
         $client = $request->input('client', 'all');
         $perPage = $request->input('perPage', 15);
         
@@ -56,16 +55,9 @@ class WorkHourController extends Controller
             $query->where('tracker', $tracker);
         }
         
-        // Apply project filter
-        if ($project !== 'all') {
-            $query->whereHas('project', function($q) use ($project) {
-                $q->where('name', $project);
-            });
-        }
-        
-        // Apply client filter
+        // Apply client filter (replacing project filter)
         if ($client !== 'all') {
-            $query->whereHas('project.client', function($q) use ($client) {
+            $query->whereHas('client', function($q) use ($client) {
                 $q->where('name', $client);
             });
         }
@@ -83,7 +75,6 @@ class WorkHourController extends Controller
             'endDate' => $endDate,
             'workType' => $workType,
             'tracker' => $tracker,
-            'project' => $project,
             'client' => $client,
             'perPage' => $perPage,
             'flash' => [
@@ -95,13 +86,12 @@ class WorkHourController extends Controller
 
     public function create()
     {
-        $projects = Project::select('id', 'name', 'client_id')
-            ->with(['client:id,name'])
+        $clients = Client::select('id', 'name')
             ->orderBy('name')
             ->get();
         return Inertia::render('WorkHourCreate', [
             'trackers' => $this->trackers,
-            'projects' => $projects,
+            'clients' => $clients,
         ]);
     }
 
@@ -113,7 +103,7 @@ class WorkHourController extends Controller
             'minutes' => 'required|integer|min:0|max:59',
             'description' => 'nullable|string',
             'work_type' => 'nullable|string',
-            'project_id' => 'nullable|integer|exists:projects,id',
+            'client_id' => 'nullable|integer|exists:clients,id',
             'tracker' => 'nullable|string',
         ]);
         $validated['user_id'] = $request->user()->id;
@@ -126,14 +116,16 @@ class WorkHourController extends Controller
 
     public function edit(WorkHour $workHour)
     {
-        $projects = Project::select('id', 'name', 'client_id')
-            ->with(['client:id,name'])
+        // Load the client relationship
+        $workHour->load('client');
+        
+        $clients = Client::select('id', 'name')
             ->orderBy('name')
             ->get();
         return Inertia::render('WorkHourEdit', [
             'workHour' => $workHour,
             'trackers' => $this->trackers,
-            'projects' => $projects,
+            'clients' => $clients,
         ]);
     }
 
@@ -145,7 +137,7 @@ class WorkHourController extends Controller
             'minutes' => 'required|integer|min:0|max:59',
             'description' => 'nullable|string',
             'work_type' => 'nullable|string',
-            'project_id' => 'nullable|integer|exists:projects,id',
+            'client_id' => 'nullable|integer|exists:clients,id',
             'tracker' => 'nullable|string',
         ]);
         $validated['hours'] = $validated['hours'] + ($validated['minutes'] / 60);
@@ -164,7 +156,7 @@ class WorkHourController extends Controller
     public function exportPersonal(Request $request)
     {
         $user = auth()->user();
-        $query = WorkHour::with('user', 'project', 'project.client');
+        $query = WorkHour::with('user', 'client');
         
         // Only show current user's entries
         $query->where('user_id', $user->id);
@@ -174,7 +166,6 @@ class WorkHourController extends Controller
         $endDate = $request->input('endDate');
         $workType = $request->input('workType', 'all');
         $tracker = $request->input('tracker', 'all');
-        $project = $request->input('project', 'all');
         $client = $request->input('client', 'all');
         
         // Apply date filter
@@ -192,16 +183,9 @@ class WorkHourController extends Controller
             $query->where('tracker', $tracker);
         }
         
-        // Apply project filter
-        if ($project !== 'all') {
-            $query->whereHas('project', function($q) use ($project) {
-                $q->where('name', $project);
-            });
-        }
-        
         // Apply client filter
         if ($client !== 'all') {
-            $query->whereHas('project.client', function($q) use ($client) {
+            $query->whereHas('client', function($q) use ($client) {
                 $q->where('name', $client);
             });
         }
@@ -216,7 +200,7 @@ class WorkHourController extends Controller
 
     public function export(Request $request)
     {
-        $query = WorkHour::with('user', 'project', 'project.client');
+        $query = WorkHour::with('user', 'client');
         $filter = $request->input('filter', 'all');
         $startDate = $request->input('startDate');
         $endDate = $request->input('endDate');
@@ -224,7 +208,6 @@ class WorkHourController extends Controller
         $userId = $request->input('userId', 'all');
         $designation = $request->input('designation', 'all');
         $tracker = $request->input('tracker', 'all');
-        $project = $request->input('project', 'all');
         $client = $request->input('client', 'all');
         
         // Apply date filter
@@ -254,16 +237,9 @@ class WorkHourController extends Controller
             $query->where('tracker', $tracker);
         }
         
-        // Apply project filter
-        if ($project !== 'all') {
-            $query->whereHas('project', function($q) use ($project) {
-                $q->where('name', $project);
-            });
-        }
-        
         // Apply client filter
         if ($client !== 'all') {
-            $query->whereHas('project.client', function($q) use ($client) {
+            $query->whereHas('client', function($q) use ($client) {
                 $q->where('name', $client);
             });
         }
@@ -278,7 +254,7 @@ class WorkHourController extends Controller
 
     public function report(Request $request)
     {
-        $query = WorkHour::with('user', 'project', 'project.client');
+        $query = WorkHour::with('user', 'client');
         $filter = $request->input('filter', 'all');
         $startDate = $request->input('startDate');
         $endDate = $request->input('endDate');
@@ -286,7 +262,6 @@ class WorkHourController extends Controller
         $userId = $request->input('userId', 'all');
         $designation = $request->input('designation', 'all');
         $tracker = $request->input('tracker', 'all');
-        $project = $request->input('project', 'all');
         $client = $request->input('client', 'all');
         $perPage = $request->input('perPage', 15);
         
@@ -323,16 +298,9 @@ class WorkHourController extends Controller
             $query->where('tracker', $tracker);
         }
         
-        // Apply project filter
-        if ($project !== 'all') {
-            $query->whereHas('project', function($q) use ($project) {
-                $q->where('name', $project);
-            });
-        }
-        
         // Apply client filter
         if ($client !== 'all') {
-            $query->whereHas('project.client', function($q) use ($client) {
+            $query->whereHas('client', function($q) use ($client) {
                 $q->where('name', $client);
             });
         }
@@ -355,7 +323,6 @@ class WorkHourController extends Controller
             'userId' => $userId,
             'designation' => $designation,
             'tracker' => $tracker,
-            'project' => $project,
             'client' => $client,
             'perPage' => $perPage,
         ]);

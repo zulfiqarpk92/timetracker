@@ -60,4 +60,12 @@ class User extends Authenticatable
             ? asset('storage/' . $this->avatar)
             : null;
     }
+
+    /**
+     * Get the work hours for the user.
+     */
+    public function workHours()
+    {
+        return $this->hasMany(WorkHour::class);
+    }
 }

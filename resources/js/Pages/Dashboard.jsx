@@ -221,12 +221,12 @@ export default function Dashboard({ auth, stats }) {
                                             </svg>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-2xl font-bold text-white">{stats?.activeProjects?.value || '0'}</div>
-                                            <div className="text-sm text-white/60">{stats?.activeProjects?.label || 'Active'}</div>
+                                            <div className="text-2xl font-bold text-white">{stats?.activeClients?.value || '0'}</div>
+                                            <div className="text-sm text-white/60">{stats?.activeClients?.label || 'Active'}</div>
                                         </div>
                                     </div>
-                                    <h3 className="text-lg font-semibold text-white mb-1">Projects</h3>
-                                    <p className="text-sm text-white/60">{stats?.activeProjects?.changeLabel || 'No projects yet'}</p>
+                                    <h3 className="text-lg font-semibold text-white mb-1">Clients</h3>
+                                    <p className="text-sm text-white/60">{stats?.activeClients?.changeLabel || 'No clients yet'}</p>
                                 </div>
                             </div>
 
@@ -271,7 +271,7 @@ export default function Dashboard({ auth, stats }) {
 
                                         {auth.user?.role === 'admin' && (
                                             <>
-                                                <Link href={route('projects.create')} className="group flex-1 min-w-[200px] max-w-[250px]">
+                                                <Link href={route('clients.create')} className="group flex-1 min-w-[200px] max-w-[250px]">
                                                     <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-md p-6 rounded-xl border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20 hover:scale-105">
                                                         <div className="text-center">
                                                             <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg mb-4 mx-auto w-fit">
@@ -279,13 +279,13 @@ export default function Dashboard({ auth, stats }) {
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                                                 </svg>
                                                             </div>
-                                                            <h3 className="text-lg font-semibold text-white mb-2">New Project</h3>
-                                                            <p className="text-sm text-white/70">Create a project</p>
+                                                            <h3 className="text-lg font-semibold text-white mb-2">New Client</h3>
+                                                            <p className="text-sm text-white/70">Create a client</p>
                                                         </div>
                                                     </div>
                                                 </Link>
 
-                                                <Link href={route('clients.create')} className="group flex-1 min-w-[200px] max-w-[250px]">
+                                                <Link href={route('users.create')} className="group flex-1 min-w-[200px] max-w-[250px]">
                                                     <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-md p-6 rounded-xl border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20 hover:scale-105">
                                                         <div className="text-center">
                                                             <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg mb-4 mx-auto w-fit">
@@ -293,8 +293,8 @@ export default function Dashboard({ auth, stats }) {
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                                                 </svg>
                                                             </div>
-                                                            <h3 className="text-lg font-semibold text-white mb-2">Add Client</h3>
-                                                            <p className="text-sm text-white/70">Manage clients</p>
+                                                            <h3 className="text-lg font-semibold text-white mb-2">Add User</h3>
+                                                            <p className="text-sm text-white/70">Manage users</p>
                                                         </div>
                                                     </div>
                                                 </Link>
@@ -343,7 +343,7 @@ export default function Dashboard({ auth, stats }) {
                                             </div>
                                         </Link>
 
-                                        <Link href={route('projects.index')} className="group">
+                                        <Link href={route('clients.index')} className="group">
                                             <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-105 hover:-translate-y-2">
                                                 <div className="text-center">
                                                     <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg mb-6 mx-auto w-fit group-hover:shadow-blue-500/50 transition-all duration-300">
@@ -351,13 +351,13 @@ export default function Dashboard({ auth, stats }) {
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                                         </svg>
                                                     </div>
-                                                    <h3 className="text-xl font-bold text-white mb-3">Projects</h3>
-                                                    <p className="text-white/70 text-sm leading-relaxed">Organize and manage your project portfolio</p>
+                                                    <h3 className="text-xl font-bold text-white mb-3">Clients</h3>
+                                                    <p className="text-white/70 text-sm leading-relaxed">Organize and manage your client portfolio</p>
                                                 </div>
                                             </div>
                                         </Link>
 
-                                        <Link href={route('clients.index')} className="group">
+                                        <Link href={route('users.index')} className="group">
                                             <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 hover:border-purple-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-105 hover:-translate-y-2">
                                                 <div className="text-center">
                                                     <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg mb-6 mx-auto w-fit group-hover:shadow-purple-500/50 transition-all duration-300">
@@ -365,8 +365,8 @@ export default function Dashboard({ auth, stats }) {
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                                         </svg>
                                                     </div>
-                                                    <h3 className="text-xl font-bold text-white mb-3">Clients</h3>
-                                                    <p className="text-white/70 text-sm leading-relaxed">Build and maintain strong client relationships</p>
+                                                    <h3 className="text-xl font-bold text-white mb-3">Users</h3>
+                                                    <p className="text-white/70 text-sm leading-relaxed">Manage team members and permissions</p>
                                                 </div>
                                             </div>
                                         </Link>
