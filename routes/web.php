@@ -47,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Routes accessible to both admin and employee
     Route::resource('work-hours', \App\Http\Controllers\WorkHourController::class)->except(['show']);
     Route::get('/work-hours-export', [\App\Http\Controllers\WorkHourController::class, 'exportPersonal'])->name('work-hours.export-personal');
+    Route::post('/work-hours/bulk-delete', [\App\Http\Controllers\WorkHourController::class, 'bulkDelete'])->name('work-hours.bulk-delete');
 });
 
 require __DIR__.'/auth.php';

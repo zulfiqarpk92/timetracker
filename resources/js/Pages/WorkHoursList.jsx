@@ -94,6 +94,12 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
     const [customEndDate, setCustomEndDate] = useState(endDate ? new Date(endDate) : null);
     const [isExporting, setIsExporting] = useState(false);
 
+    // Bulk selection state
+    const [selectedEntries, setSelectedEntries] = useState(new Set());
+    const [showBulkActions, setShowBulkActions] = useState(false);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    const [bulkDeleteType, setBulkDeleteType] = useState(null); // 'selected', 'page', 'all'
+
     // Search state for filters
     const [trackerSearch, setTrackerSearch] = useState('');
     const [clientSearch, setClientSearch] = useState('');
@@ -170,6 +176,204 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
         return [hours, minutes, seconds]
             .map(v => String(v).padStart(2, '0'))
             .join(':');
+    };
+
+    // Bulk selection functions
+    const toggleEntrySelection = (entryId) => {
+        const newSelected = new Set(selectedEntries);
+        if (newSelected.has(entryId)) {
+            newSelected.delete(entryId);
+        } else {
+            newSelected.add(entryId);
+        }
+        setSelectedEntries(newSelected);
+    };
+
+    const selectAllCurrentPage = () => {
+        if (!workHours?.data) return;
+        const currentPageIds = new Set(workHours.data.map(entry => entry.id));
+        setSelectedEntries(currentPageIds);
+    };
+
+    const selectAllEntries = async () => {
+        try {
+            // Build the same filter parameters as current filters to get all IDs
+            const params = {};
+            
+            // Add date filter
+            if (activeFilter === 'custom') {
+                if (customStartDate && customEndDate) {
+                    params.filter = 'custom';
+                    params.startDate = formatDateLocal(customStartDate);
+                    params.endDate = formatDateLocal(customEndDate);
+                }
+            } else if (activeFilter !== 'all') {
+                const { start, end } = getDateRange(activeFilter);
+                params.filter = activeFilter;
+                params.startDate = start;
+                params.endDate = end;
+            }
+            
+            // Add other filters
+            if (activeWorkType && activeWorkType !== 'all') {
+                params.workType = activeWorkType;
+            }
+            if (activeTracker && activeTracker !== 'all') {
+                params.tracker = activeTracker;
+            }
+            if (activeClient && activeClient !== 'all') {
+                params.client = activeClient;
+            }
+            
+            // Add a parameter to get only IDs
+            params.idsOnly = true;
+            
+            // Build query string
+            const queryString = new URLSearchParams(params).toString();
+            const url = `${route('work-hours.export-personal')}?${queryString}`;
+            
+            // Fetch all filtered IDs
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                const allIds = new Set(result.data.map(entry => entry.id));
+                setSelectedEntries(allIds);
+                setToast(`Selected ${allIds.size} entries across all pages`);
+                setToastType('success');
+            } else {
+                // Fallback to current page if API doesn't support idsOnly
+                selectAllCurrentPage();
+                setToast('Selected all entries on current page');
+                setToastType('success');
+            }
+        } catch (error) {
+            // Fallback to current page on error
+            selectAllCurrentPage();
+            setToast('Selected all entries on current page');
+            setToastType('success');
+        }
+    };
+
+    const clearSelection = () => {
+        setSelectedEntries(new Set());
+    };
+
+    const isAllCurrentPageSelected = () => {
+        if (!workHours?.data) return false;
+        return workHours.data.every(entry => selectedEntries.has(entry.id));
+    };
+
+    const handleBulkDelete = async (type) => {
+        setBulkDeleteType(type);
+        setShowBulkActions(true);
+    };
+
+    const confirmBulkDelete = async () => {
+        if (!bulkDeleteType) return;
+        
+        setIsBulkDeleting(true);
+        
+        try {
+            let idsToDelete = [];
+            
+            if (bulkDeleteType === 'selected') {
+                idsToDelete = Array.from(selectedEntries);
+            } else if (bulkDeleteType === 'page') {
+                idsToDelete = workHours?.data?.map(entry => entry.id) || [];
+            } else if (bulkDeleteType === 'all') {
+                // Get all IDs matching current filters
+                const params = {};
+                
+                if (activeFilter === 'custom') {
+                    if (customStartDate && customEndDate) {
+                        params.filter = 'custom';
+                        params.startDate = formatDateLocal(customStartDate);
+                        params.endDate = formatDateLocal(customEndDate);
+                    }
+                } else if (activeFilter !== 'all') {
+                    const { start, end } = getDateRange(activeFilter);
+                    params.filter = activeFilter;
+                    params.startDate = start;
+                    params.endDate = end;
+                }
+                
+                if (activeWorkType && activeWorkType !== 'all') {
+                    params.workType = activeWorkType;
+                }
+                if (activeTracker && activeTracker !== 'all') {
+                    params.tracker = activeTracker;
+                }
+                if (activeClient && activeClient !== 'all') {
+                    params.client = activeClient;
+                }
+                
+                params.idsOnly = true;
+                const queryString = new URLSearchParams(params).toString();
+                const url = `${route('work-hours.export-personal')}?${queryString}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    idsToDelete = result.data.map(entry => entry.id);
+                } else {
+                    throw new Error('Failed to fetch all entry IDs');
+                }
+            }
+            
+            if (idsToDelete.length === 0) {
+                setToast('No entries to delete.');
+                setToastType('error');
+                return;
+            }
+            
+            // Send bulk delete request
+            const response = await fetch(route('work-hours.bulk-delete'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    ids: idsToDelete
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                setToast(`Successfully deleted ${idsToDelete.length} entries.`);
+                setToastType('success');
+                setSelectedEntries(new Set());
+                
+                // Refresh the page data
+                router.reload({ only: ['workHours', 'flash'] });
+            } else {
+                const error = await response.json();
+                setToast(error.message || 'Failed to delete entries.');
+                setToastType('error');
+            }
+        } catch (error) {
+            console.error('Bulk delete error:', error);
+            setToast('Failed to delete entries. Please try again.');
+            setToastType('error');
+        } finally {
+            setIsBulkDeleting(false);
+            setShowBulkActions(false);
+            setBulkDeleteType(null);
+        }
     };
 
     const exportToCSV = async () => {
@@ -271,6 +475,11 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
             setToastType('error');
         }
     }, [flash?.success, flash?.error]);
+
+    // Clear selections when page data changes
+    useEffect(() => {
+        setSelectedEntries(new Set());
+    }, [workHours?.current_page, activeFilter, activeWorkType, activeTracker, activeClient]);
 
     const handleDelete = (id) => {
         setDeleteId(id);
@@ -487,71 +696,230 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                     </div>
                 </div>
             )}
+            
+            {/* Bulk Delete Confirmation Modal */}
+            {showBulkActions && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl shadow-2xl p-8 w-full max-w-lg border border-white/20">
+                        <h2 className="text-xl font-bold mb-4 text-white">Confirm Bulk Delete</h2>
+                        
+                        {bulkDeleteType === 'selected' && (
+                            <div className="mb-6">
+                                <p className="text-white/70 mb-2">Are you sure you want to delete {selectedEntries.size} selected entries?</p>
+                                <div className="bg-red-500/20 border border-red-400/30 rounded-lg p-3">
+                                    <p className="text-red-200 text-sm">This will permanently delete the selected work hour entries. This action cannot be undone.</p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {bulkDeleteType === 'page' && (
+                            <div className="mb-6">
+                                <p className="text-white/70 mb-2">Are you sure you want to delete all {workHours?.data?.length || 0} entries on this page?</p>
+                                <div className="bg-orange-500/20 border border-orange-400/30 rounded-lg p-3">
+                                    <p className="text-orange-200 text-sm">This will permanently delete all work hour entries currently visible on this page. This action cannot be undone.</p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {bulkDeleteType === 'all' && (
+                            <div className="mb-6">
+                                <p className="text-white/70 mb-2">Are you sure you want to delete ALL {workHours?.total || 0} entries matching your current filters?</p>
+                                <div className="bg-red-500/30 border border-red-400/50 rounded-lg p-4">
+                                    <p className="text-red-200 text-sm font-medium mb-2">⚠️ WARNING: This is a destructive action!</p>
+                                    <p className="text-red-200 text-sm">This will permanently delete ALL work hour entries that match your current filter criteria across ALL pages. This action cannot be undone.</p>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-end gap-3">
+                            <button 
+                                onClick={() => {
+                                    setShowBulkActions(false);
+                                    setBulkDeleteType(null);
+                                }} 
+                                className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all backdrop-blur-xl border border-white/20"
+                                disabled={isBulkDeleting}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmBulkDelete} 
+                                disabled={isBulkDeleting}
+                                className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all flex items-center"
+                            >
+                                {isBulkDeleting ? (
+                                    <>
+                                        <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="py-12 min-h-screen relative z-10">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Header Section */}
                     <div className="mb-6">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h1 className="text-4xl font-bold text-white mb-2">
-                                    {getUserRoleContext().title}
-                                </h1>
-                                <p className="text-white/70 text-lg">{getUserRoleContext().description}</p>
-                            </div>
-                            <div className="flex gap-3 items-center">
-                                <button
-                                    onClick={() => setShowFilters(!showFilters)}
-                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl border border-white/20 backdrop-blur-xl"
-                                >
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-                                    </svg>
-                                    {showFilters ? 'Hide Additional Filters' : 'Show Additional Filters'}
-                                </button>
-                                <Link 
-                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl" 
-                                    href={route('work-hours.create')}
-                                >
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Add Entry
-                                </Link>
-                                <button
-                                    onClick={exportToCSV}
-                                    disabled={isExporting}
-                                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
-                                >
-                                    {isExporting ? (
-                                        <>
-                                            <svg className="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                            Exporting...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                            Export to CSV
-                                        </>
-                                    )}
-                                </button>
-                                <div className="flex items-center gap-2 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-xl px-4 py-2 border border-white/20">
-                                    <span className="text-white text-sm font-medium">Show:</span>
+                        {/* Title and Description */}
+                        <div className="mb-4">
+                            <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
+                                {getUserRoleContext().title}
+                            </h1>
+                            <p className="text-white/70 text-base lg:text-lg">{getUserRoleContext().description}</p>
+                            {selectedEntries.size > 0 && (
+                                <div className="mt-2 text-blue-400 text-sm font-medium">
+                                    {selectedEntries.size} entr{selectedEntries.size === 1 ? 'y' : 'ies'} selected
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action Buttons - Fixed Layout */}
+                        <div className="space-y-4">
+                            {/* Primary Actions Row */}
+                            <div className="flex flex-wrap gap-3 items-center justify-between">
+                                <div className="flex flex-wrap gap-3">
+                                    <button
+                                        onClick={() => setShowFilters(!showFilters)}
+                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl border border-white/20 backdrop-blur-xl"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                                        </svg>
+                                        <span className="hidden sm:inline">{showFilters ? 'Hide' : 'Show'} Filters</span>
+                                        <span className="sm:hidden">Filters</span>
+                                    </button>
+                                    
+                                    <Link 
+                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl" 
+                                        href={route('work-hours.create')}
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        <span className="hidden sm:inline">Add Entry</span>
+                                        <span className="sm:hidden">Add</span>
+                                    </Link>
+
+                                    <button
+                                        onClick={exportToCSV}
+                                        disabled={isExporting}
+                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        {isExporting ? (
+                                            <>
+                                                <svg className="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                <span className="hidden sm:inline">Exporting...</span>
+                                                <span className="sm:hidden">...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                <span className="hidden sm:inline">Export CSV</span>
+                                                <span className="sm:hidden">Export</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                <div className="flex items-center gap-2 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-xl px-3 py-2 border border-white/20">
+                                    <span className="text-white text-sm font-medium hidden sm:inline">Show:</span>
                                     <select
                                         value={activePerPage}
                                         onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
-                                        className="bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        className="bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     >
-                                        <option value={15} className="bg-slate-800 text-white">15 entries</option>
-                                        <option value={25} className="bg-slate-800 text-white">25 entries</option>
-                                        <option value={50} className="bg-slate-800 text-white">50 entries</option>
-                                        <option value={100} className="bg-slate-800 text-white">100 entries</option>
+                                        <option value={15} className="bg-slate-800 text-white">15</option>
+                                        <option value={25} className="bg-slate-800 text-white">25</option>
+                                        <option value={50} className="bg-slate-800 text-white">50</option>
+                                        <option value={100} className="bg-slate-800 text-white">100</option>
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Bulk Actions Row - Only shown when data exists */}
+                            {workHours?.data && workHours.data.length > 0 && (
+                                <div className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-xl rounded-xl p-4 border border-white/10">
+                                    <div className="flex flex-wrap gap-2 items-center justify-between">
+                                        {/* Selection Actions */}
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                onClick={selectAllCurrentPage}
+                                                className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500/40 to-blue-600/40 hover:from-blue-500/60 hover:to-blue-600/60 text-white rounded-lg font-medium transition-all text-sm backdrop-blur-xl border border-blue-400/30"
+                                            >
+                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Page ({workHours.data.length})
+                                            </button>
+                                            
+                                            <button
+                                                onClick={selectAllEntries}
+                                                className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-green-500/40 to-green-600/40 hover:from-green-500/60 hover:to-green-600/60 text-white rounded-lg font-medium transition-all text-sm backdrop-blur-xl border border-green-400/30"
+                                            >
+                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                All ({workHours.total || 0})
+                                            </button>
+                                        </div>
+
+                                        {/* Delete Actions */}
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedEntries.size > 0 && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleBulkDelete('selected')}
+                                                        className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-500/60 to-red-600/60 hover:from-red-500/80 hover:to-red-600/80 text-white rounded-lg font-medium transition-all text-sm border border-red-400/50"
+                                                    >
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                        Selected ({selectedEntries.size})
+                                                    </button>
+                                                    <button
+                                                        onClick={clearSelection}
+                                                        className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-gray-500/60 to-gray-600/60 hover:from-gray-500/80 hover:to-gray-600/80 text-white rounded-lg font-medium transition-all text-sm border border-gray-400/50"
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                </>
+                                            )}
+                                            
+                                            <button
+                                                onClick={() => handleBulkDelete('page')}
+                                                className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-orange-500/40 to-orange-600/40 hover:from-orange-500/60 hover:to-orange-600/60 text-white rounded-lg font-medium transition-all text-sm backdrop-blur-xl border border-orange-400/30"
+                                            >
+                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Page ({workHours.data.length})
+                                            </button>
+                                            
+                                            {workHours.total > workHours.data.length && (
+                                                <button
+                                                    onClick={() => handleBulkDelete('all')}
+                                                    className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-500/40 to-red-600/40 hover:from-red-500/60 hover:to-red-600/60 text-white rounded-lg font-medium transition-all text-sm backdrop-blur-xl border border-red-400/30"
+                                                >
+                                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                    All ({workHours.total})
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -888,28 +1256,42 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
 
                     {/* Main Content Area - Separate container */}
                     <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl overflow-hidden shadow-2xl rounded-2xl border border-white/10">
-                        <div className="p-8 text-white">
+                        <div className="p-4 sm:p-6 lg:p-8 text-white">
                             <div className="overflow-x-auto bg-white/5 backdrop-blur-xl rounded-xl border border-white/10">
-                                        <table className="min-w-full divide-y divide-white/10 table-fixed">
+                                        <table className="min-w-full divide-y divide-white/10">
                                             <thead className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 backdrop-blur-xl">
                                                 <tr>
-                                                    <th className="w-16 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">ID</th>
+                                                    <th className="w-12 px-4 py-3 text-left">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isAllCurrentPageSelected()}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    selectAllCurrentPage();
+                                                                } else {
+                                                                    clearSelection();
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 bg-white/20 border-white/30 rounded focus:ring-blue-500 focus:ring-2"
+                                                        />
+                                                    </th>
+                                                    <th className="w-16 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">ID</th>
                                                     {getUserRoleContext().showUserColumn && (
-                                                        <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">User</th>
+                                                        <th className="w-32 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">User</th>
                                                     )}
-                                                    <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Work Type</th>
-                                                    <th className="w-24 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Tracker</th>
-                                                    <th className="w-28 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Date</th>
-                                                    <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
-                                                    <th className="w-20 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
-                                                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
-                                                    <th className="w-32 px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg">Actions</th>
+                                                    <th className="w-32 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Work Type</th>
+                                                    <th className="w-28 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Tracker</th>
+                                                    <th className="w-32 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Date</th>
+                                                    <th className="w-36 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Client</th>
+                                                    <th className="w-24 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Hours</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Description</th>
+                                                    <th className="w-32 px-4 py-3 text-left text-xs font-bold text-white uppercase tracking-wider sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
                                                 {!workHours?.data || !Array.isArray(workHours.data) || workHours.data.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={8} className="px-6 py-12 text-center">
+                                                        <td colSpan={9} className="px-6 py-12 text-center">
                                                             <div className="flex flex-col items-center">
                                                                 <svg className="w-12 h-12 text-white/40 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -930,29 +1312,39 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                                     </tr>
                                                 ) : (
                                                 workHours.data.map((entry, index) => (
-                                                    <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white/5' : 'bg-white/10'} hover:bg-white/20 transition-all duration-200`}>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-400">{entry.id}</td>
+                                                    <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-white/5' : 'bg-white/10'} hover:bg-white/20 transition-all duration-200 ${selectedEntries.has(entry.id) ? 'ring-2 ring-blue-400 bg-blue-500/20' : ''}`}>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedEntries.has(entry.id)}
+                                                                onChange={() => toggleEntrySelection(entry.id)}
+                                                                className="w-4 h-4 text-blue-600 bg-white/20 border-white/30 rounded focus:ring-blue-500 focus:ring-2"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-400">{entry.id}</td>
                                                         {getUserRoleContext().showUserColumn && (
-                                                            <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.user?.name}>
+                                                            <td className="px-4 py-3 text-sm text-white truncate font-medium" title={entry.user?.name}>
                                                                 <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-500/30 text-blue-200 rounded-full backdrop-blur-xl border border-blue-400/30">
                                                                     {entry.user?.name}
                                                                 </span>
                                                             </td>
                                                         )}
-                                                        <td className="px-6 py-4 text-sm text-white truncate">
+                                                        <td className="px-4 py-3 text-sm text-white">
                                                             <span className="inline-flex px-2 py-1 text-xs font-medium bg-purple-500/30 text-purple-200 rounded-full backdrop-blur-xl border border-purple-400/30">
                                                                 {formatWorkType(entry.work_type)}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-sm text-white capitalize truncate font-medium">{entry.tracker}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">{entry.date}</td>
-                                                        <td className="px-6 py-4 text-sm text-white truncate font-medium" title={entry.client?.name}>{entry.client?.name || 'No Client'}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-400">{timeFormat(entry.hours)}</td>
-                                                        <td className="px-6 py-4 text-sm text-white/80 max-w-xs" title={entry.description}>
-                                                            <div className="truncate">
-                                                                {entry.description && entry.description.length > 50 ? (
+                                                        <td className="px-4 py-3 text-sm text-white capitalize font-medium">{entry.tracker}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-white font-medium">{entry.date}</td>
+                                                        <td className="px-4 py-3 text-sm text-white font-medium" title={entry.client?.name}>
+                                                            <div className="truncate max-w-36">{entry.client?.name || 'No Client'}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-green-400">{timeFormat(entry.hours)}</td>
+                                                        <td className="px-4 py-3 text-sm text-white/80" title={entry.description}>
+                                                            <div className="max-w-xs lg:max-w-md xl:max-w-lg truncate">
+                                                                {entry.description && entry.description.length > 100 ? (
                                                                     <span>
-                                                                        {entry.description.substring(0, 50)}...
+                                                                        {entry.description.substring(0, 100)}...
                                                                         <button 
                                                                             className="ml-1 text-blue-400 hover:text-blue-300 text-xs underline"
                                                                             onClick={() => {
@@ -969,12 +1361,12 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg">
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-white sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg">
                                                             <div className="flex space-x-2">
-                                                                <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-medium rounded-md transition-all shadow-md hover:shadow-lg">
+                                                                <Link href={route('work-hours.edit', entry.id)} className="inline-flex items-center px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-medium rounded-md transition-all shadow-md hover:shadow-lg">
                                                                     Edit
                                                                 </Link>
-                                                                <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-medium rounded-md transition-all shadow-md hover:shadow-lg">
+                                                                <button onClick={() => handleDelete(entry.id)} className="inline-flex items-center px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-medium rounded-md transition-all shadow-md hover:shadow-lg">
                                                                     Delete
                                                                 </button>
                                                             </div>
@@ -985,12 +1377,12 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                             {workHours?.data && Array.isArray(workHours.data) && workHours.data.length > 0 && (
                                             <tfoot className="bg-gradient-to-r from-white/5 to-green-500/20 backdrop-blur-xl">
                                                 <tr>
-                                                    <td colSpan={5} className="px-6 py-4"></td>
-                                                    <td className="px-6 py-4 font-bold text-right text-green-400 text-lg">
+                                                    <td colSpan={6} className="px-4 py-3"></td>
+                                                    <td className="px-4 py-3 font-bold text-right text-green-400 text-lg">
                                                         Total: {timeFormat(workHours.data.reduce((sum, entry) => sum + Number(entry.hours || 0), 0).toFixed(2))}
                                                     </td>
-                                                    <td className="px-6 py-4"></td>
-                                                    <td className="w-32 px-6 py-4 sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg"></td>
+                                                    <td className="px-4 py-3"></td>
+                                                    <td className="px-4 py-3 sticky right-0 bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-lg"></td>
                                                 </tr>
                                             </tfoot>
                                             )}
@@ -999,7 +1391,7 @@ export default function WorkHoursList({ auth, workHours, flash, filter = 'week',
                                 
                                     {/* Traditional Pagination */}
                                     {workHours?.data && Array.isArray(workHours.data) && workHours.data.length > 0 && (
-                                        <div className="mt-6 pt-6 border-t border-white/10">
+                                        <div className="mt-4 pt-4 border-t border-white/10">
                                             <div className="flex justify-between items-center mb-4">
                                                 <div className="text-white/70 text-sm">
                                                     Showing {workHours.from || 0} to {workHours.to || 0} of {workHours.total || 0} entries

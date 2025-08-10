@@ -153,6 +153,37 @@ class WorkHourController extends Controller
         return redirect()->route('work-hours.index')->with('success', 'Work hour entry deleted.');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:work_hours,id'
+        ]);
+
+        $user = auth()->user();
+        $ids = $validated['ids'];
+
+        // Ensure user can only delete their own entries
+        $deletableEntries = WorkHour::whereIn('id', $ids)
+            ->where('user_id', $user->id)
+            ->get();
+
+        if ($deletableEntries->count() !== count($ids)) {
+            return response()->json([
+                'message' => 'Some entries could not be deleted. You can only delete your own entries.'
+            ], 403);
+        }
+
+        $deletedCount = WorkHour::whereIn('id', $ids)
+            ->where('user_id', $user->id)
+            ->delete();
+
+        return response()->json([
+            'message' => "Successfully deleted {$deletedCount} entries.",
+            'deleted_count' => $deletedCount
+        ]);
+    }
+
     public function exportPersonal(Request $request)
     {
         $user = auth()->user();
@@ -167,6 +198,7 @@ class WorkHourController extends Controller
         $workType = $request->input('workType', 'all');
         $tracker = $request->input('tracker', 'all');
         $client = $request->input('client', 'all');
+        $idsOnly = $request->input('idsOnly', false);
         
         // Apply date filter
         if ($filter !== 'all' && $startDate && $endDate) {
@@ -190,8 +222,13 @@ class WorkHourController extends Controller
             });
         }
         
-        // Get all data without pagination
-        $workHours = $query->orderByDesc('date')->orderByDesc('id')->get();
+        // If only IDs are requested, return just ID and minimal data for bulk operations
+        if ($idsOnly) {
+            $workHours = $query->orderByDesc('date')->orderByDesc('id')->get(['id']);
+        } else {
+            // Get all data without pagination
+            $workHours = $query->orderByDesc('date')->orderByDesc('id')->get();
+        }
         
         return response()->json([
             'data' => $workHours
