@@ -14,9 +14,8 @@ return new class extends Migration
     {
         // Add indexes for better performance
         $this->addIndexIfNotExists('work_hours', 'user_id');
-        $this->addIndexIfNotExists('work_hours', 'project_id');
+        $this->addIndexIfNotExists('work_hours', 'client_id');
         $this->addIndexIfNotExists('work_hours', 'date');
-        $this->addIndexIfNotExists('projects', 'client_id');
     }
 
     /**
@@ -26,9 +25,8 @@ return new class extends Migration
     {
         // Drop indexes if they exist
         $this->dropIndexIfExists('work_hours', 'work_hours_user_id_index');
-        $this->dropIndexIfExists('work_hours', 'work_hours_project_id_index');
+        $this->dropIndexIfExists('work_hours', 'work_hours_client_id_index');
         $this->dropIndexIfExists('work_hours', 'work_hours_date_index');
-        $this->dropIndexIfExists('projects', 'projects_client_id_index');
     }
 
     private function addIndexIfNotExists($table, $column)
