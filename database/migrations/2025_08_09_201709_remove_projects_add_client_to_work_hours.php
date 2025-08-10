@@ -27,8 +27,20 @@ return new class extends Migration
         });
 
         Schema::table('work_hours', function (Blueprint $table) {
-            // Drop the foreign key constraint
-            $table->dropForeign(['project_id']);
+            // Check if foreign key exists and drop it if it does
+            $foreignKeys = DB::select("
+                SELECT CONSTRAINT_NAME 
+                FROM information_schema.KEY_COLUMN_USAGE 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'work_hours' 
+                AND COLUMN_NAME = 'project_id' 
+                AND CONSTRAINT_NAME != 'PRIMARY'
+            ");
+            
+            if (!empty($foreignKeys)) {
+                $table->dropForeign(['project_id']);
+            }
+            
             // Rename project_id to client_id
             $table->renameColumn('project_id', 'client_id');
         });
