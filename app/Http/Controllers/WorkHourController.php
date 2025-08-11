@@ -163,20 +163,25 @@ class WorkHourController extends Controller
         $user = auth()->user();
         $ids = $validated['ids'];
 
-        // Ensure user can only delete their own entries
-        $deletableEntries = WorkHour::whereIn('id', $ids)
-            ->where('user_id', $user->id)
-            ->get();
+        // If admin, allow deleting any entry. If not, restrict to own entries.
+        if ($user->role === 'admin') {
+            $deletedCount = WorkHour::whereIn('id', $ids)->delete();
+        } else {
+            // Ensure user can only delete their own entries
+            $deletableEntries = WorkHour::whereIn('id', $ids)
+                ->where('user_id', $user->id)
+                ->get();
 
-        if ($deletableEntries->count() !== count($ids)) {
-            return response()->json([
-                'message' => 'Some entries could not be deleted. You can only delete your own entries.'
-            ], 403);
+            if ($deletableEntries->count() !== count($ids)) {
+                return response()->json([
+                    'message' => 'Some entries could not be deleted. You can only delete your own entries.'
+                ], 403);
+            }
+
+            $deletedCount = WorkHour::whereIn('id', $ids)
+                ->where('user_id', $user->id)
+                ->delete();
         }
-
-        $deletedCount = WorkHour::whereIn('id', $ids)
-            ->where('user_id', $user->id)
-            ->delete();
 
         return response()->json([
             'message' => "Successfully deleted {$deletedCount} entries.",

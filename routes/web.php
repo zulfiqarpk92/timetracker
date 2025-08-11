@@ -39,7 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
-        Route::get('/work-hours/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
+        Route::get('/report', [\App\Http\Controllers\WorkHourController::class, 'report'])->name('work-hours.report');
         Route::get('/work-hours/export', [\App\Http\Controllers\WorkHourController::class, 'export'])->name('work-hours.export');
         Route::resource('clients', ClientController::class);
     });

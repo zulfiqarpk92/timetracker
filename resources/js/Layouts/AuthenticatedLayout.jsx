@@ -44,7 +44,30 @@ export default function Authenticated({ user, header, children }) {
                                         <span className="font-semibold text-slate-700 group-hover:text-blue-700 transition-colors duration-300">Dashboard</span>
                                     </div>
                                 </NavLink>
-                                
+                                {user?.role === 'admin' && (
+                                    <NavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
+                                        <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-teal-50 hover:to-cyan-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-teal-200/50">
+                                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 group-hover:from-teal-600 group-hover:to-teal-700 shadow-sm group-hover:shadow-md transition-all duration-300">
+                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1z" />
+                                            </svg>
+                                        </div>
+                                        <span className="font-semibold text-slate-700 group-hover:text-teal-700 transition-colors duration-300">Users</span>
+                                    </div>
+                                </NavLink>
+                                )}
+                                {user?.role === 'admin' && (
+                                    <NavLink href={route('clients.index')} active={['clients.index', 'clients.create', 'clients.edit'].some(r => route().current(r))}>
+                                        <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-purple-200/50">
+                                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 group-hover:from-purple-600 group-hover:to-purple-700 shadow-sm group-hover:shadow-md transition-all duration-300">
+                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M15 7a3 3 0 11-6 0 3 3 0 616 0z" />
+                                            </svg>
+                                        </div>
+                                        <span className="font-semibold text-slate-700 group-hover:text-purple-700 transition-colors duration-300">Clients</span>
+                                    </div>
+                                </NavLink>
+                                )}
                                 <NavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
                                     <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-emerald-200/50">
                                         <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 group-hover:from-emerald-600 group-hover:to-emerald-700 shadow-sm group-hover:shadow-md transition-all duration-300">
@@ -55,44 +78,17 @@ export default function Authenticated({ user, header, children }) {
                                         <span className="font-semibold text-slate-700 group-hover:text-emerald-700 transition-colors duration-300">Work diary</span>
                                     </div>
                                 </NavLink>
-                                
-                                {user?.role === 'admin' && (
-                                    <NavLink href={route('clients.index')} active={['clients.index', 'clients.create', 'clients.edit'].some(r => route().current(r))}>
-                                        <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-purple-200/50">
-                                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 group-hover:from-purple-600 group-hover:to-purple-700 shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M15 7a3 3 0 11-6 0 3 3 0 616 0z" />
-                                                </svg>
-                                            </div>
-                                            <span className="font-semibold text-slate-700 group-hover:text-purple-700 transition-colors duration-300">Clients</span>
-                                        </div>
-                                    </NavLink>
-                                )}
-                                
-                                {user?.role === 'admin' && (
-                                    <NavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
-                                        <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-teal-50 hover:to-cyan-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-teal-200/50">
-                                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 group-hover:from-teal-600 group-hover:to-teal-700 shadow-sm group-hover:shadow-md transition-all duration-300">
-                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1z" />
-                                                </svg>
-                                            </div>
-                                            <span className="font-semibold text-slate-700 group-hover:text-teal-700 transition-colors duration-300">Users</span>
-                                        </div>
-                                    </NavLink>
-                                )}
-                                
                                 {user?.role === 'admin' && (
                                     <NavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
                                         <div className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:shadow-lg hover:scale-105 border-2 border-transparent hover:border-rose-200/50">
                                             <div className="p-1.5 rounded-lg bg-gradient-to-br from-rose-500 to-rose-600 group-hover:from-rose-600 group-hover:to-rose-700 shadow-sm group-hover:shadow-md transition-all duration-300">
                                                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                </svg>
-                                            </div>
-                                            <span className="font-semibold text-slate-700 group-hover:text-rose-700 transition-colors duration-300">Report</span>
+                                            </svg>
                                         </div>
-                                    </NavLink>
+                                        <span className="font-semibold text-slate-700 group-hover:text-rose-700 transition-colors duration-300">Report</span>
+                                    </div>
+                                </NavLink>
                                 )}
                             </div>
                         </div>

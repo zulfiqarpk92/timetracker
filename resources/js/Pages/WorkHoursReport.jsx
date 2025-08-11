@@ -391,7 +391,7 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
                 onSuccess: () => {
                     setSelectedEntries(new Set());
                     setShowBulkConfirm(false);
-                    setToast(`Successfully deleted ${result.deletedCount} entries`);
+                    setToast(`Successfully deleted ${result.deleted_count} entries`);
                 }
             });
         } catch (error) {

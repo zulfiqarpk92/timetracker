@@ -42,25 +42,23 @@ export default function Authenticated({ user, header, children }) {
                                 <NavLink href={route('dashboard')} active={route().current('dashboard')}>
                                     Dashboard
                                 </NavLink>
-                                
-                                <NavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
-                                    Work diary
-                                </NavLink>
-                                
                                 {user?.role === 'admin' && (
                                     <>
+                                        <NavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
+                                            Users
+                                        </NavLink>
                                         <NavLink href={route('clients.index')} active={['clients.index', 'clients.create', 'clients.edit'].some(r => route().current(r))}>
                                             Clients
                                         </NavLink>
-                                        
-                                        <NavLink href={route('projects.index')} active={['projects.index', 'projects.create', 'projects.edit'].some(r => route().current(r))}>
-                                            Projects
-                                        </NavLink>
-                                        
-                                        <NavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
-                                            Report
-                                        </NavLink>
                                     </>
+                                )}
+                                <NavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
+                                    Work diary
+                                </NavLink>
+                                {user?.role === 'admin' && (
+                                    <NavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
+                                        Report
+                                    </NavLink>
                                 )}
                             </div>
                         </div>
@@ -145,25 +143,23 @@ export default function Authenticated({ user, header, children }) {
                         <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>
                             Dashboard
                         </ResponsiveNavLink>
-                        
-                        <ResponsiveNavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
-                            Work diary
-                        </ResponsiveNavLink>
-                        
                         {user?.role === 'admin' && (
                             <>
+                                <ResponsiveNavLink href={route('users.index')} active={['users.index', 'users.create', 'users.edit'].some(r => route().current(r))}>
+                                    Users
+                                </ResponsiveNavLink>
                                 <ResponsiveNavLink href={route('clients.index')} active={['clients.index', 'clients.create', 'clients.edit'].some(r => route().current(r))}>
                                     Clients
                                 </ResponsiveNavLink>
-                                
-                                <ResponsiveNavLink href={route('projects.index')} active={['projects.index', 'projects.create', 'projects.edit'].some(r => route().current(r))}>
-                                    Projects
-                                </ResponsiveNavLink>
-                                
-                                <ResponsiveNavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
-                                    Report
-                                </ResponsiveNavLink>
                             </>
+                        )}
+                        <ResponsiveNavLink href={route('work-hours.index')} active={['work-hours.index', 'work-hours.create', 'work-hours.edit'].some(r => route().current(r))}>
+                            Work diary
+                        </ResponsiveNavLink>
+                        {user?.role === 'admin' && (
+                            <ResponsiveNavLink href={route('work-hours.report')} active={['work-hours.report'].some(r => route().current(r))}>
+                                Report
+                            </ResponsiveNavLink>
                         )}
 
                         {/* Mobile Quick Action */}
