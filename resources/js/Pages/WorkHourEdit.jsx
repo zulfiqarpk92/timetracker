@@ -22,6 +22,8 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
     });
     const [showTrackerOptions, setShowTrackerOptions] = React.useState(false);
     const [showClientOptions, setShowClientOptions] = React.useState(false);
+    const [clientValidationError, setClientValidationError] = React.useState('');
+    const [trackerValidationError, setTrackerValidationError] = React.useState('');
     const trackerRef = React.useRef(null);
     const clientRef = React.useRef(null);
     const trackerDropdownRef = React.useRef(null);
@@ -55,6 +57,62 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
         return hours > 0 || minutes > 0;
     };
 
+    // Validate client selection
+    const validateClient = (searchValue) => {
+        if (!isClientRequired()) {
+            setClientValidationError('');
+            return true;
+        }
+
+        if (!searchValue || searchValue.trim() === '') {
+            setClientValidationError('Please select a client from the dropdown');
+            return false;
+        }
+
+        // Check if the entered value exactly matches a client name
+        const matchingClient = clients.find(client => client.name === searchValue);
+        if (!matchingClient) {
+            setClientValidationError('Please select a valid client from the dropdown');
+            return false;
+        }
+
+        // Ensure client_id is set correctly
+        if (form.data.client_id != matchingClient.id) {
+            form.setData('client_id', matchingClient.id);
+        }
+
+        setClientValidationError('');
+        return true;
+    };
+
+    // Validate tracker selection
+    const validateTracker = (searchValue) => {
+        if (!isTrackerRequired()) {
+            setTrackerValidationError('');
+            return true;
+        }
+
+        if (!searchValue || searchValue.trim() === '') {
+            setTrackerValidationError('Please select a profile from the dropdown');
+            return false;
+        }
+
+        // Check if the entered value exactly matches a tracker
+        const matchingTracker = trackers.find(tracker => tracker === searchValue);
+        if (!matchingTracker) {
+            setTrackerValidationError('Please select a valid profile from the dropdown');
+            return false;
+        }
+
+        // Ensure tracker is set correctly
+        if (form.data.tracker !== matchingTracker) {
+            form.setData('tracker', matchingTracker);
+        }
+
+        setTrackerValidationError('');
+        return true;
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         
@@ -65,6 +123,14 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
         if (hours === 0 && minutes === 0) {
             alert('Please enter at least some time (hours or minutes).');
             return;
+        }
+
+        // Validate client selection
+        const isClientValid = validateClient(form.data.clientSearch);
+        const isTrackerValid = validateTracker(form.data.trackerSearch || form.data.tracker);
+
+        if (!isClientValid || !isTrackerValid) {
+            return; // Don't submit if validation fails
         }
         
         // Calculate total hours as decimal (hours + minutes/60)
@@ -109,12 +175,14 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
         if (!['tracker', 'manual', 'fixed'].includes(workType)) {
             newData.tracker = '';
             newData.trackerSearch = '';
+            setTrackerValidationError('');
         }
 
         // Clear client if not needed for this work type
         if (!['tracker', 'manual', 'fixed', 'outside_of_upwork'].includes(workType)) {
             newData.client_id = '';
             newData.clientSearch = '';
+            setClientValidationError('');
         }
 
         form.setData(newData);
@@ -126,6 +194,94 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
 
     const isClientRequired = () => {
         return ['tracker', 'manual', 'fixed', 'outside_of_upwork'].includes(form.data.work_type);
+    };
+
+    // Handle client search change
+    const handleClientSearchChange = (e) => {
+        const val = e.target.value;
+        form.setData('clientSearch', val);
+        
+        // Clear client_id if the search doesn't match any client exactly
+        const matchingClient = clients.find(client => client.name === val);
+        if (!matchingClient) {
+            form.setData('client_id', '');
+        } else {
+            form.setData('client_id', matchingClient.id);
+        }
+        
+        // Clear validation error when user starts typing
+        if (clientValidationError) {
+            setClientValidationError('');
+        }
+        
+        setShowClientOptions(true);
+    };
+
+    // Handle tracker search change
+    const handleTrackerSearchChange = (e) => {
+        const val = e.target.value;
+        form.setData('trackerSearch', val);
+        
+        // Clear tracker if the search doesn't match any tracker exactly
+        const matchingTracker = trackers.find(tracker => tracker === val);
+        if (!matchingTracker) {
+            form.setData('tracker', '');
+        } else {
+            form.setData('tracker', matchingTracker);
+        }
+        
+        // Clear validation error when user starts typing
+        if (trackerValidationError) {
+            setTrackerValidationError('');
+        }
+        
+        setShowTrackerOptions(true);
+    };
+
+    // Handle client selection from dropdown
+    const handleClientSelect = (client) => {
+        form.setData('client_id', client.id);
+        form.setData('clientSearch', client.name);
+        setClientValidationError(''); // Clear any validation errors immediately
+        setShowClientOptions(false);
+        
+        // Ensure validation passes for this selection
+        setTimeout(() => {
+            validateClient(client.name);
+        }, 50);
+    };
+
+    // Handle tracker selection from dropdown
+    const handleTrackerSelect = (tracker) => {
+        form.setData('tracker', tracker);
+        form.setData('trackerSearch', tracker);
+        setTrackerValidationError(''); // Clear any validation errors immediately
+        setShowTrackerOptions(false);
+        
+        // Ensure validation passes for this selection
+        setTimeout(() => {
+            validateTracker(tracker);
+        }, 50);
+    };
+
+    // Handle client field blur - validate when user leaves the field
+    const handleClientBlur = () => {
+        setTimeout(() => {
+            setShowClientOptions(false);
+            if (isClientRequired()) {
+                validateClient(form.data.clientSearch);
+            }
+        }, 300); // Increased timeout to allow dropdown click to complete
+    };
+
+    // Handle tracker field blur - validate when user leaves the field
+    const handleTrackerBlur = () => {
+        setTimeout(() => {
+            setShowTrackerOptions(false);
+            if (isTrackerRequired()) {
+                validateTracker(form.data.trackerSearch || form.data.tracker);
+            }
+        }, 300); // Increased timeout to allow dropdown click to complete
     };
 
     // Set initial search values
@@ -210,23 +366,23 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
                                                 ref={trackerRef}
                                                 type="text"
                                                 placeholder="Search or select profile..."
-                                                className="w-full px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-white/50"
+                                                className={`w-full px-4 py-3 bg-white/10 backdrop-blur-xl border rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-white/50 ${
+                                                    trackerValidationError ? 'border-red-400' : 'border-white/20'
+                                                }`}
                                                 value={
                                                     form.data.trackerSearch ||
                                                     (form.data.tracker ? form.data.tracker : '')
                                                 }
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    form.setData('trackerSearch', val);
-                                                    if (val !== form.data.tracker) {
-                                                        form.setData('tracker', '');
-                                                    }
-                                                    setShowTrackerOptions(true);
-                                                }}
+                                                onChange={handleTrackerSearchChange}
                                                 onFocus={handleTrackerFocus}
-                                                onBlur={() => setTimeout(() => setShowTrackerOptions(false), 200)}
+                                                onBlur={handleTrackerBlur}
                                                 required={isTrackerRequired()}
                                             />
+                                            {trackerValidationError && (
+                                                <div className="mt-1 text-sm text-red-300">
+                                                    {trackerValidationError}
+                                                </div>
+                                            )}
                                             {showTrackerOptions && (
                                                 <div 
                                                     ref={trackerDropdownRef}
@@ -240,11 +396,8 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
                                                                 key={index}
                                                                 type="button"
                                                                 className="w-full text-left px-3 py-2 hover:bg-white/20 rounded-lg text-white transition-all"
-                                                                onClick={() => {
-                                                                    form.setData('tracker', tracker);
-                                                                    form.setData('trackerSearch', tracker);
-                                                                    setShowTrackerOptions(false);
-                                                                }}
+                                                                onMouseDown={(e) => e.preventDefault()} // Prevent blur when clicking
+                                                                onClick={() => handleTrackerSelect(tracker)}
                                                             >
                                                                 {tracker}
                                                             </button>
@@ -252,7 +405,9 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
                                                         {trackers.filter(tracker => 
                                                             !form.data.trackerSearch || tracker.toLowerCase().includes(form.data.trackerSearch.toLowerCase())
                                                         ).length === 0 && form.data.trackerSearch && (
-                                                            <div className="px-3 py-2 text-white/60 text-sm">No profiles found</div>
+                                                            <div className="px-3 py-2 text-white/60 text-sm">
+                                                                No profiles found. Please select from available options.
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -270,29 +425,20 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
                                                 ref={clientRef}
                                                 type="text"
                                                 placeholder="Search or select client..."
-                                                className="w-full px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-white/50"
-                                                value={
-                                                    form.data.clientSearch ||
-                                                    (form.data.client_id
-                                                        ? (() => {
-                                                            const client = clients.find(c => c.id == form.data.client_id);
-                                                            return client ? client.name : '';
-                                                        })()
-                                                        : ''
-                                                    )
-                                                }
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    form.setData('clientSearch', val);
-                                                    if (!clients.find(c => c.name === val)) {
-                                                        form.setData('client_id', '');
-                                                    }
-                                                    setShowClientOptions(true);
-                                                }}
+                                                className={`w-full px-4 py-3 bg-white/10 backdrop-blur-xl border rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-white/50 ${
+                                                    clientValidationError ? 'border-red-400' : 'border-white/20'
+                                                }`}
+                                                value={form.data.clientSearch}
+                                                onChange={handleClientSearchChange}
                                                 onFocus={handleClientFocus}
-                                                onBlur={() => setTimeout(() => setShowClientOptions(false), 200)}
+                                                onBlur={handleClientBlur}
                                                 required={isClientRequired()}
                                             />
+                                            {clientValidationError && (
+                                                <div className="mt-1 text-sm text-red-300">
+                                                    {clientValidationError}
+                                                </div>
+                                            )}
                                             {showClientOptions && (
                                                 <div 
                                                     ref={clientDropdownRef}
@@ -307,11 +453,8 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
                                                                 key={client.id}
                                                                 type="button"
                                                                 className="w-full text-left px-3 py-2 hover:bg-white/20 rounded-lg text-white transition-all"
-                                                                onClick={() => {
-                                                                    form.setData('client_id', client.id);
-                                                                    form.setData('clientSearch', client.name);
-                                                                    setShowClientOptions(false);
-                                                                }}
+                                                                onMouseDown={(e) => e.preventDefault()} // Prevent blur when clicking
+                                                                onClick={() => handleClientSelect(client)}
                                                             >
                                                                 {client.name}
                                                             </button>
@@ -320,7 +463,9 @@ export default function WorkHourEdit({ auth, workHour, trackers = [], clients = 
                                                             const label = client.name;
                                                             return !form.data.clientSearch || label.toLowerCase().includes(form.data.clientSearch.toLowerCase());
                                                         }).length === 0 && form.data.clientSearch && (
-                                                            <div className="px-3 py-2 text-white/60 text-sm">No clients found</div>
+                                                            <div className="px-3 py-2 text-white/60 text-sm">
+                                                                No clients found. Please select from available options.
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
