@@ -6,6 +6,7 @@ return [
         "Awais",
         "Ayesha",
         "Basit",
+        "Faryal",
         "Islam Shah",
         "Jawad",
         "Junaid",
