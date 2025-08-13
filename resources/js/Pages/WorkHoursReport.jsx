@@ -84,7 +84,7 @@ const getDateRange = (filter) => {
     return { start, end };
 };
 
-export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all', designation = 'all', tracker = 'all', client = 'all', perPage = 15 }) {
+export default function WorkHoursList({ auth, workHours, users = [], flash, filter = 'all', startDate = '', endDate = '', workType = 'all', userId = 'all', designation = 'all', tracker = 'all', client = 'all', perPage = 15, availableDesignations = [], availableTrackers = [], availableClients = [] }) {
     const [deleteId, setDeleteId] = useState(null);
     const [toast, setToast] = useState(flash?.success || '');
     const [activeFilter, setActiveFilter] = useState(filter);
@@ -127,19 +127,17 @@ export default function WorkHoursList({ auth, workHours, users = [], flash, filt
     };
 
     // Helper to get unique values for filters
+    // Use backend-provided filter options for all pages
     const getUniqueDesignations = () => {
-        const designations = [...new Set(workHours?.data?.map(entry => entry.user?.designation).filter(Boolean) || [])];
-        return designations.sort();
+        return availableDesignations;
     };
 
     const getUniqueTrackers = () => {
-        const trackers = [...new Set(workHours?.data?.map(entry => entry.tracker).filter(Boolean) || [])];
-        return trackers.sort();
+        return availableTrackers;
     };
 
     const getUniqueClients = () => {
-        const clients = [...new Set(workHours?.data?.map(entry => entry.client?.name).filter(Boolean) || [])];
-        return clients.sort();
+        return availableClients;
     };
 
     // Helper to convert decimal hours to HH:mm:ss

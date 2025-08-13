@@ -299,13 +299,37 @@ class WorkHourController extends Controller
         $query = WorkHour::with('user', 'client');
         $filter = $request->input('filter', 'all');
         $startDate = $request->input('startDate');
-        $endDate = $request->input('endDate');
-        $workType = $request->input('workType', 'all');
-        $userId = $request->input('userId', 'all');
-        $designation = $request->input('designation', 'all');
-        $tracker = $request->input('tracker', 'all');
-        $client = $request->input('client', 'all');
-        $perPage = $request->input('perPage', 15);
+            $endDate = $request->input('endDate');
+            $workType = $request->input('workType', 'all');
+            $userId = $request->input('userId', 'all');
+            $designation = $request->input('designation', 'all');
+            $tracker = $request->input('tracker', 'all');
+            $client = $request->input('client', 'all');
+            $perPage = $request->input('perPage', 15);
+
+            // Fetch all available filter options
+            $availableDesignations = \App\Models\User::whereNotNull('designation')
+                ->distinct()
+                ->pluck('designation')
+                ->filter()
+                ->sort()
+                ->values();
+
+            $availableTrackers = \App\Models\WorkHour::whereNotNull('tracker')
+                ->distinct()
+                ->pluck('tracker')
+                ->filter()
+                ->sort()
+                ->values();
+
+            $availableClients = \App\Models\WorkHour::with('client')
+                ->whereHas('client')
+                ->get()
+                ->pluck('client.name')
+                ->unique()
+                ->filter()
+                ->sort()
+                ->values();
         
         // Validate perPage to prevent abuse
         $allowedPerPage = [15, 25, 50, 100];
@@ -367,6 +391,9 @@ class WorkHourController extends Controller
             'tracker' => $tracker,
             'client' => $client,
             'perPage' => $perPage,
+                'availableDesignations' => $availableDesignations,
+                'availableTrackers' => $availableTrackers,
+                'availableClients' => $availableClients,
         ]);
     }
 }
